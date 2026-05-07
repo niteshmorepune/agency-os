@@ -14,6 +14,16 @@ router.get('/:clientId', asyncHandler(async (req, res) => {
   res.json({ data });
 }));
 
+// score-history must come BEFORE /:clientId/:platform to avoid being matched as platform="score-history"
+router.get('/:clientId/score-history', asyncHandler(async (req, res) => {
+  const history = await prisma.platformScoreHistory.findMany({
+    where: { optimization: { clientId: req.params.clientId } },
+    orderBy: { recordedAt: 'asc' },
+    include: { optimization: { select: { platform: true } } },
+  });
+  res.json({ data: history });
+}));
+
 router.get('/:clientId/:platform', asyncHandler(async (req, res) => {
   const platform = req.params.platform.toUpperCase() as Platform;
   const data = await optService.getOptimization(req.params.clientId, platform, req.user!);
@@ -37,15 +47,6 @@ router.post('/:clientId/:platform/ai-suggest/:checkId', asyncHandler(async (req,
   const platform = req.params.platform.toUpperCase() as Platform;
   const result = await optService.getAISuggestion(req.params.clientId, platform, req.params.checkId, req.user!);
   res.json({ data: result });
-}));
-
-router.get('/:clientId/score-history', asyncHandler(async (req, res) => {
-  const history = await prisma.platformScoreHistory.findMany({
-    where: { optimization: { clientId: req.params.clientId } },
-    orderBy: { recordedAt: 'asc' },
-    include: { optimization: { select: { platform: true } } },
-  });
-  res.json({ data: history });
 }));
 
 export default router;

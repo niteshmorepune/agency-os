@@ -7,7 +7,7 @@ import { PLATFORM_CHECKS } from '../lib/platformChecks';
 export async function getOptimization(clientId: string, platform: Platform, user: JwtPayload) {
   let opt = await prisma.platformOptimization.findUnique({
     where: { clientId_platform: { clientId, platform } },
-    include: { checks: true, scoreHistory: { orderBy: { recordedAt: 'desc' }, take: 12 } },
+    include: { checks: true, scoreHistory: { orderBy: { recordedAt: 'asc' }, take: 30 } },
   });
 
   if (!opt) {
@@ -16,16 +16,22 @@ export async function getOptimization(clientId: string, platform: Platform, user
       data: {
         clientId,
         platform,
-        checks: {
-          create: checks.map(c => ({ checkId: c.id })),
-        },
+        checks: { create: checks.map(c => ({ checkId: c.id })) },
       },
       include: { checks: true, scoreHistory: true },
     });
   }
 
   void user;
-  return opt;
+
+  // Merge check definitions (name, description, benchmark, category, weight) into each check row
+  const defs = PLATFORM_CHECKS[platform] ?? [];
+  const enrichedChecks = opt.checks.map(c => {
+    const def = defs.find(d => d.id === c.checkId);
+    return { ...c, name: def?.name ?? c.checkId, description: def?.description, benchmark: def?.benchmark, category: def?.category ?? 'general', defWeight: def?.weight ?? c.score ?? 1, aiRewriteEnabled: def?.aiRewriteEnabled ?? false };
+  });
+
+  return { ...opt, checks: enrichedChecks };
 }
 
 export async function getAllOptimizations(clientId: string) {

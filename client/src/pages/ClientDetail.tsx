@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   ArrowLeft, Edit2, Save, X, Globe, Mail, DollarSign,
-  Users, BarChart2, Plus, Trash2, UserPlus, Building2, ClipboardList,
+  Users, BarChart2, Plus, Trash2, UserPlus, Building2, ClipboardList, TrendingUp,
 } from 'lucide-react';
 import { api } from '../api/client';
 
@@ -334,7 +334,7 @@ function PlatformsTab({ clientId }: { clientId: string }) {
       {platforms.map(p => (
         <Link
           key={p.platform}
-          to={`/optimize?client=${clientId}&platform=${p.platform.toLowerCase()}`}
+          to={`/optimize/${clientId}/${p.platform}`}
           className="card p-5 hover:shadow-md transition-shadow group"
         >
           <div className="flex items-center justify-between mb-4">
@@ -513,6 +513,9 @@ export default function ClientDetail() {
             <span className="flex items-center gap-1"><Users size={13} />{client.assignments.length} members</span>
           </div>
         </div>
+        <Link to={`/optimize/${client.id}`} className="btn-secondary flex items-center gap-2 flex-shrink-0 text-sm">
+          <TrendingUp size={16} /> Optimize
+        </Link>
         <Link to={`/audit/${client.id}`} className="btn-secondary flex items-center gap-2 flex-shrink-0 text-sm">
           <ClipboardList size={16} /> Audits
         </Link>

@@ -12,6 +12,8 @@ import AIStudio from './pages/AIStudio';
 import Settings from './pages/Settings';
 import AuditList from './pages/AuditList';
 import AuditDetail from './pages/AuditDetail';
+import OptimizeClient from './pages/OptimizeClient';
+import OptimizePlatform from './pages/OptimizePlatform';
 import NotFound from './pages/NotFound';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -47,7 +49,9 @@ export default function App() {
         <Route path="/ai-studio/:toolId" element={<ProtectedRoute><AIStudio /></ProtectedRoute>} />
         <Route path="/audit/:clientId" element={<ProtectedRoute><AuditList /></ProtectedRoute>} />
         <Route path="/audit/:clientId/:auditId" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
-        <Route path="/optimize" element={<ProtectedRoute><div className="card p-8 text-center text-gray-400">Platform Optimizer — coming in Session 4</div></ProtectedRoute>} />
+        <Route path="/optimize" element={<Navigate to="/clients" replace />} />
+        <Route path="/optimize/:clientId" element={<ProtectedRoute><OptimizeClient /></ProtectedRoute>} />
+        <Route path="/optimize/:clientId/:platform" element={<ProtectedRoute><OptimizePlatform /></ProtectedRoute>} />
         <Route path="/content" element={<ProtectedRoute><div className="card p-8 text-center text-gray-400">Content Studio — coming in Session 7</div></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><div className="card p-8 text-center text-gray-400">Analytics — coming in Session 9</div></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
