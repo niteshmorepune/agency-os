@@ -9,6 +9,7 @@ import Clients from './pages/Clients';
 import ClientDetail from './pages/ClientDetail';
 import ClientNew from './pages/ClientNew';
 import AIStudio from './pages/AIStudio';
+import AIUsage from './pages/AIUsage';
 import Settings from './pages/Settings';
 import AuditList from './pages/AuditList';
 import AuditDetail from './pages/AuditDetail';
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/clients/new" element={<ProtectedRoute><ClientNew /></ProtectedRoute>} />
         <Route path="/clients/:id" element={<ProtectedRoute><ClientDetail /></ProtectedRoute>} />
         <Route path="/ai-studio" element={<ProtectedRoute><AIStudio /></ProtectedRoute>} />
+        <Route path="/ai-studio/usage" element={<ProtectedRoute><AIUsage /></ProtectedRoute>} />
         <Route path="/ai-studio/:toolId" element={<ProtectedRoute><AIStudio /></ProtectedRoute>} />
         <Route path="/audit/:clientId" element={<ProtectedRoute><AuditList /></ProtectedRoute>} />
         <Route path="/audit/:clientId/:auditId" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
