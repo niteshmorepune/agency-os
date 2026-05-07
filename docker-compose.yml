@@ -35,6 +35,8 @@ services:
       - root_default
     restart: unless-stopped
     labels:
+      # Tell Traefik which network to use (container is on multiple networks)
+      - traefik.docker.network=root_default
       # HTTPS router
       - traefik.enable=true
       - traefik.http.routers.agencyos.rule=Host(`nedsdrishti.in`)
