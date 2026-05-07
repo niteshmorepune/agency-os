@@ -16,6 +16,10 @@ import AuditDetail from './pages/AuditDetail';
 import OptimizeHome from './pages/OptimizeHome';
 import OptimizeClient from './pages/OptimizeClient';
 import OptimizePlatform from './pages/OptimizePlatform';
+import ContentHome from './pages/ContentHome';
+import ContentComposer from './pages/ContentComposer';
+import ContentCalendar from './pages/ContentCalendar';
+import ContentIdeas from './pages/ContentIdeas';
 import NotFound from './pages/NotFound';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -55,7 +59,11 @@ export default function App() {
         <Route path="/optimize" element={<ProtectedRoute><OptimizeHome /></ProtectedRoute>} />
         <Route path="/optimize/:clientId" element={<ProtectedRoute><OptimizeClient /></ProtectedRoute>} />
         <Route path="/optimize/:clientId/:platform" element={<ProtectedRoute><OptimizePlatform /></ProtectedRoute>} />
-        <Route path="/content" element={<ProtectedRoute><div className="card p-8 text-center text-gray-400">Content Studio — coming in Session 7</div></ProtectedRoute>} />
+        <Route path="/content" element={<ProtectedRoute><ContentHome /></ProtectedRoute>} />
+        <Route path="/content/calendar" element={<ProtectedRoute><ContentCalendar /></ProtectedRoute>} />
+        <Route path="/content/ideas" element={<ProtectedRoute><ContentIdeas /></ProtectedRoute>} />
+        <Route path="/content/new" element={<ProtectedRoute><ContentComposer /></ProtectedRoute>} />
+        <Route path="/content/:postId/edit" element={<ProtectedRoute><ContentComposer /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><div className="card p-8 text-center text-gray-400">Analytics — coming in Session 9</div></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/admin" element={<Navigate to="/settings" replace />} />
