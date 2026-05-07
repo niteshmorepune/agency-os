@@ -10,6 +10,7 @@ export const prisma = globalForPrisma.prisma || new PrismaClient({
   ],
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (prisma as any).$on('error', (e: { message: string; target: string }) => {
   logger.error({ msg: 'Prisma error', message: e.message, target: e.target });
 });

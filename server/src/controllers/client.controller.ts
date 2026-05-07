@@ -65,6 +65,12 @@ export async function assignTeamMember(req: Request, res: Response): Promise<voi
   res.json({ message: 'Team member assigned' });
 }
 
+export async function removeTeamMember(req: Request, res: Response): Promise<void> {
+  const { userId } = z.object({ userId: z.string() }).parse(req.body);
+  await clientService.removeTeamMember(req.params.id, userId, req.user!);
+  res.json({ message: 'Team member removed' });
+}
+
 export async function getClientDashboard(req: Request, res: Response): Promise<void> {
   const dashboard = await clientService.getClientDashboard(req.params.id, req.user!);
   res.json({ data: dashboard });

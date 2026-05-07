@@ -12,7 +12,8 @@ router.post('/', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctr
 router.get('/:id', asyncHandler(ctrl.getClient));
 router.put('/:id', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.updateClient));
 router.delete('/:id', requireRole(Role.OWNER), asyncHandler(ctrl.deleteClient));
-router.post('/:id/assign', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.assignTeamMember));
+router.post('/:id/assign',  requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.assignTeamMember));
+router.delete('/:id/assign', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.removeTeamMember));
 router.get('/:id/dashboard', asyncHandler(ctrl.getClientDashboard));
 
 export default router;

@@ -64,6 +64,11 @@ export async function assignTeamMember(clientId: string, userId: string, request
   });
 }
 
+export async function removeTeamMember(clientId: string, userId: string, requestingUser: JwtPayload) {
+  await getClient(clientId, requestingUser);
+  await prisma.clientAssignment.deleteMany({ where: { clientId, userId } });
+}
+
 export async function getClientDashboard(clientId: string, user: JwtPayload) {
   const client = await getClient(clientId, user);
   const [platformScores, postCount, ideaCount] = await Promise.all([

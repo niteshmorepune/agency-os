@@ -4,6 +4,7 @@ import { JwtPayload, Role } from '@agencyos/shared';
 import { logger } from '../lib/logger';
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: JwtPayload;

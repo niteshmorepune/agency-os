@@ -6,7 +6,10 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
+import ClientDetail from './pages/ClientDetail';
+import ClientNew from './pages/ClientNew';
 import AIStudio from './pages/AIStudio';
+import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -36,12 +39,15 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+        <Route path="/clients/new" element={<ProtectedRoute><ClientNew /></ProtectedRoute>} />
+        <Route path="/clients/:id" element={<ProtectedRoute><ClientDetail /></ProtectedRoute>} />
         <Route path="/ai-studio" element={<ProtectedRoute><AIStudio /></ProtectedRoute>} />
         <Route path="/ai-studio/:toolId" element={<ProtectedRoute><AIStudio /></ProtectedRoute>} />
         <Route path="/optimize" element={<ProtectedRoute><div className="card p-8 text-center text-gray-400">Platform Optimizer — coming in Session 4</div></ProtectedRoute>} />
         <Route path="/content" element={<ProtectedRoute><div className="card p-8 text-center text-gray-400">Content Studio — coming in Session 7</div></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><div className="card p-8 text-center text-gray-400">Analytics — coming in Session 9</div></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute><div className="card p-8 text-center text-gray-400">Admin Panel — coming in Session 10</div></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/admin" element={<Navigate to="/settings" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
