@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   ArrowLeft, Edit2, Save, X, Globe, Mail, DollarSign,
-  Users, BarChart2, Plus, Trash2, UserPlus, Building2,
+  Users, BarChart2, Plus, Trash2, UserPlus, Building2, ClipboardList,
 } from 'lucide-react';
 import { api } from '../api/client';
 
@@ -513,6 +513,9 @@ export default function ClientDetail() {
             <span className="flex items-center gap-1"><Users size={13} />{client.assignments.length} members</span>
           </div>
         </div>
+        <Link to={`/audit/${client.id}`} className="btn-secondary flex items-center gap-2 flex-shrink-0 text-sm">
+          <ClipboardList size={16} /> Audits
+        </Link>
       </div>
 
       <div className="border-b border-gray-200">

@@ -4,6 +4,7 @@ export enum Role {
   CONTENT_CREATOR = 'CONTENT_CREATOR',
   SEO_ANALYST = 'SEO_ANALYST',
   CLIENT = 'CLIENT',
+  AUDITOR = 'AUDITOR',
 }
 
 export enum Platform {

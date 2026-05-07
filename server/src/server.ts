@@ -13,6 +13,7 @@ import aiRoutes from './routes/ai.routes';
 import optimizationRoutes from './routes/optimization.routes';
 import postRoutes from './routes/posts.routes';
 import agencyRoutes from './routes/agency.routes';
+import auditRoutes from './routes/audit.routes';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -52,6 +53,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/optimization', optimizationRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/agency', agencyRoutes);
+app.use('/api/audit', auditRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
