@@ -7,6 +7,7 @@ import { z } from 'zod';
 import {
   ArrowLeft, Edit2, Save, X, Globe, Mail, DollarSign,
   Users, BarChart2, Plus, Trash2, UserPlus, Building2, ClipboardList, TrendingUp,
+  CheckCircle2, Circle, PartyPopper,
 } from 'lucide-react';
 import { api } from '../api/client';
 
@@ -29,6 +30,7 @@ interface ClientDetail {
   notes?: string;
   status: string;
   createdAt: string;
+  onboardingComplete: boolean;
   assignments: AssignedUser[];
 }
 
@@ -457,6 +459,62 @@ function TeamTab({ client }: { client: ClientDetail }) {
   );
 }
 
+function OnboardingChecklist({ client }: { client: ClientDetail }) {
+  const qc = useQueryClient();
+
+  const completeMutation = useMutation({
+    mutationFn: () => api.post(`/client-portal/onboarding/${client.id}/complete`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client', client.id] }),
+  });
+
+  const steps = [
+    { label: 'Brand & industry info filled', done: !!(client.brandName && client.industry) },
+    { label: 'Contact details added', done: !!(client.contactName && client.contactEmail) },
+    { label: 'Team member assigned', done: client.assignments.length > 0 },
+    { label: 'Client account linked', done: client.assignments.some(a => a.user.role === 'CLIENT') },
+  ];
+
+  const completedCount = steps.filter(s => s.done).length;
+
+  return (
+    <div className="card p-5 border-l-4 border-amber-400 bg-amber-50/40">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-1">
+            <PartyPopper size={16} className="text-amber-500" />
+            Client Setup Checklist
+            <span className="text-xs font-normal text-gray-500 ml-1">{completedCount}/{steps.length} done</span>
+          </h3>
+          <p className="text-xs text-gray-500 mb-3">Complete these steps to get the client fully onboarded.</p>
+          <div className="space-y-1.5">
+            {steps.map(step => (
+              <div key={step.label} className="flex items-center gap-2 text-sm">
+                {step.done
+                  ? <CheckCircle2 size={15} className="text-green-500 flex-shrink-0" />
+                  : <Circle size={15} className="text-gray-300 flex-shrink-0" />}
+                <span className={step.done ? 'text-gray-500 line-through' : 'text-gray-700'}>{step.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <button
+          onClick={() => completeMutation.mutate()}
+          disabled={completeMutation.isPending}
+          className="btn-secondary text-sm flex-shrink-0"
+        >
+          {completeMutation.isPending ? 'Saving…' : 'Mark Complete'}
+        </button>
+      </div>
+      <div className="mt-3 w-full bg-gray-200 rounded-full h-1.5">
+        <div
+          className="h-1.5 rounded-full bg-amber-400 transition-all"
+          style={{ width: `${(completedCount / steps.length) * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 type Tab = 'overview' | 'platforms' | 'team';
 
 export default function ClientDetail() {
@@ -520,6 +578,8 @@ export default function ClientDetail() {
           <ClipboardList size={16} /> Audits
         </Link>
       </div>
+
+      {!client.onboardingComplete && <OnboardingChecklist client={client} />}
 
       <div className="border-b border-gray-200">
         <nav className="flex gap-1">

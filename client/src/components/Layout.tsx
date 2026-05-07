@@ -19,6 +19,10 @@ const nav = [
   { label: 'Settings', icon: Settings, href: '/admin', roles: [Role.OWNER] },
 ];
 
+const CLIENT_NAV = [
+  { label: 'My Dashboard', icon: LayoutDashboard, href: '/portal' },
+];
+
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -41,10 +45,14 @@ export default function Layout({ children }: LayoutProps) {
     navigate('/login');
   };
 
+  const isClient = user?.role === Role.CLIENT;
+
   const filteredNav = nav.filter(item => {
     if (item.roles === 'all') return true;
     return user && (item.roles as Role[]).includes(user.role);
   });
+
+  const visibleNav = isClient ? CLIENT_NAV : filteredNav;
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -54,11 +62,11 @@ export default function Layout({ children }: LayoutProps) {
           <div className="w-8 h-8 rounded-lg bg-primary-800 flex items-center justify-center flex-shrink-0">
             <span className="text-white font-bold text-sm">A</span>
           </div>
-          <span className="font-semibold text-gray-900 truncate">Agency OS</span>
+          <span className="font-semibold text-gray-900 truncate">{isClient ? 'My Portal' : 'Agency OS'}</span>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {filteredNav.map(item => {
+          {visibleNav.map(item => {
             const Icon = item.icon;
             const active = location.pathname.startsWith(item.href);
             return (

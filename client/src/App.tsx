@@ -3,8 +3,10 @@ import { useEffect } from 'react';
 import { api } from './api/client';
 import { useAuthStore } from './store/auth.store';
 import Layout from './components/Layout';
+import { Role } from '@agencyos/shared';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import ClientPortal from './pages/ClientPortal';
 import Clients from './pages/Clients';
 import ClientDetail from './pages/ClientDetail';
 import ClientNew from './pages/ClientNew';
@@ -23,11 +25,34 @@ import ContentCalendar from './pages/ContentCalendar';
 import ContentIdeas from './pages/ContentIdeas';
 import NotFound from './pages/NotFound';
 
+const Spinner = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin w-8 h-8 border-4 border-primary-200 border-t-primary-800 rounded-full" />
+  </div>
+);
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-primary-200 border-t-primary-800 rounded-full" /></div>;
+  if (isLoading) return <Spinner />;
   if (!user) return <Navigate to="/login" replace />;
   return <Layout>{children}</Layout>;
+}
+
+// Redirects CLIENT role away from agency pages
+function AgencyOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuthStore();
+  if (isLoading) return <Spinner />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === Role.CLIENT) return <Navigate to="/portal" replace />;
+  return <Layout>{children}</Layout>;
+}
+
+function RootRedirect() {
+  const { user, isLoading } = useAuthStore();
+  if (isLoading) return <Spinner />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === Role.CLIENT) return <Navigate to="/portal" replace />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 function AppInit() {
@@ -47,8 +72,9 @@ export default function App() {
       <AppInit />
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/portal" element={<ProtectedRoute><ClientPortal /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<AgencyOnlyRoute><Dashboard /></AgencyOnlyRoute>} />
         <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
         <Route path="/clients/new" element={<ProtectedRoute><ClientNew /></ProtectedRoute>} />
         <Route path="/clients/:id" element={<ProtectedRoute><ClientDetail /></ProtectedRoute>} />
