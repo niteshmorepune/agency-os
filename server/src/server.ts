@@ -15,6 +15,7 @@ import postRoutes from './routes/posts.routes';
 import agencyRoutes from './routes/agency.routes';
 import auditRoutes from './routes/audit.routes';
 import ideasRoutes from './routes/ideas.routes';
+import analyticsRoutes from './routes/analytics.routes';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -56,6 +57,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/agency', agencyRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/ideas', ideasRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

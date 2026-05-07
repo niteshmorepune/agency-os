@@ -10,6 +10,7 @@ import ClientDetail from './pages/ClientDetail';
 import ClientNew from './pages/ClientNew';
 import AIStudio from './pages/AIStudio';
 import AIUsage from './pages/AIUsage';
+import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import AuditList from './pages/AuditList';
 import AuditDetail from './pages/AuditDetail';
@@ -64,7 +65,7 @@ export default function App() {
         <Route path="/content/ideas" element={<ProtectedRoute><ContentIdeas /></ProtectedRoute>} />
         <Route path="/content/new" element={<ProtectedRoute><ContentComposer /></ProtectedRoute>} />
         <Route path="/content/:postId/edit" element={<ProtectedRoute><ContentComposer /></ProtectedRoute>} />
-        <Route path="/analytics" element={<ProtectedRoute><div className="card p-8 text-center text-gray-400">Analytics — coming in Session 9</div></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/admin" element={<Navigate to="/settings" replace />} />
         <Route path="*" element={<NotFound />} />
