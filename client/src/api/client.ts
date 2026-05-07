@@ -16,7 +16,7 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && !path.startsWith('/auth/')) {
     const refreshed = await tryRefresh();
     if (refreshed) {
       return apiFetch(path, options);
