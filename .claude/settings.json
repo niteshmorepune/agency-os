@@ -1,0 +1,59 @@
+{
+  "model": "claude-sonnet-4-6",
+  "permissions": {
+    "allowedTools": [
+      "Read", "Write", "Edit", "Bash(npm *)", "Bash(npx *)",
+      "Bash(git *)", "Bash(node *)", "Bash(mkdir *)", "Bash(cp *)",
+      "Bash(cat *)", "Bash(ls *)", "Bash(grep *)", "Bash(find *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.production)",
+      "Write(./.env.production)",
+      "Bash(rm -rf *)",
+      "Bash(curl * | bash)",
+      "Bash(sudo *)",
+      "Bash(chmod 777 *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{
+          "type": "command",
+          "command": "FILE=$CLAUDE_TOOL_INPUT_FILE_PATH; if [[ $FILE == *.ts || $FILE == *.tsx ]]; then npx eslint --fix \"$FILE\" 2>/dev/null; fi",
+          "async": true
+        }]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{
+          "type": "command",
+          "command": "CMD=$(echo \"$CLAUDE_TOOL_INPUT_COMMAND\"); if echo \"$CMD\" | grep -qE '(drop table|DELETE FROM|TRUNCATE|rm -rf|sudo rm)'; then echo 'BLOCKED: Destructive command requires manual confirmation' >&2; exit 2; fi; exit 0"
+        }]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [{
+          "type": "command",
+          "command": "echo \"$(date '+%Y-%m-%d %H:%M'): Session ended\" >> ~/.claude/agencyos-activity.log",
+          "async": true
+        }]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [{
+          "type": "command",
+          "command": "echo '\\a'"
+        }]
+      }
+    ]
+  },
+  "autoMemoryEnabled": true,
+  "includeCoAuthoredBy": true
+}

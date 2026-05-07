@@ -1,0 +1,44 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { authenticate, requireOwner } from '../middleware/auth.middleware';
+import { asyncHandler } from '../lib/asyncHandler';
+import { prisma } from '../lib/prisma';
+import { hashPassword } from '../services/auth.service';
+
+const router = Router();
+router.use(authenticate, requireOwner);
+
+router.get('/', asyncHandler(async (req, res) => {
+  const users = await prisma.user.findMany({
+    where: { agencyId: req.user!.agencyId },
+    select: { id: true, email: true, name: true, role: true, avatarUrl: true, isActive: true, lastLoginAt: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json({ data: users });
+}));
+
+router.post('/', asyncHandler(async (req, res) => {
+  const schema = z.object({ email: z.string().email(), name: z.string().min(1), role: z.enum(['ACCOUNT_MANAGER', 'CONTENT_CREATOR', 'SEO_ANALYST', 'CLIENT']), password: z.string().min(8) });
+  const { email, name, role, password } = schema.parse(req.body);
+  const passwordHash = await hashPassword(password);
+  const user = await prisma.user.create({
+    data: { email, name, role, passwordHash, agencyId: req.user!.agencyId },
+    select: { id: true, email: true, name: true, role: true, createdAt: true },
+  });
+  res.status(201).json({ data: user });
+}));
+
+router.put('/:id', asyncHandler(async (req, res) => {
+  const schema = z.object({ name: z.string().min(1).optional(), role: z.string().optional(), isActive: z.boolean().optional() });
+  const data = schema.parse(req.body);
+  const user = await prisma.user.update({ where: { id: req.params.id, agencyId: req.user!.agencyId }, data, select: { id: true, email: true, name: true, role: true, isActive: true } });
+  res.json({ data: user });
+}));
+
+router.delete('/:id', asyncHandler(async (req, res) => {
+  if (req.params.id === req.user!.userId) { res.status(400).json({ error: 'Cannot delete yourself' }); return; }
+  await prisma.user.update({ where: { id: req.params.id, agencyId: req.user!.agencyId }, data: { isActive: false } });
+  res.json({ message: 'User deactivated' });
+}));
+
+export default router;

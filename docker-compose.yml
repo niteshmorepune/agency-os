@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    env_file: .env.production        # supplies POSTGRES_PASSWORD
+    environment:
+      POSTGRES_DB: agencyos
+      POSTGRES_USER: agencyos_user   # POSTGRES_PASSWORD comes from env_file
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agencyos_user -d agencyos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      FRONTEND_URL: https://nedsdrishti.in
+    volumes:
+      - uploads:/app/uploads
+      - logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+      - root_default
+    restart: unless-stopped
+    labels:
+      # HTTPS router
+      - traefik.enable=true
+      - traefik.http.routers.agencyos.rule=Host(`nedsdrishti.in`)
+      - traefik.http.routers.agencyos.entrypoints=websecure
+      - traefik.http.routers.agencyos.tls.certresolver=myhttpchallenge
+      - traefik.http.services.agencyos.loadbalancer.server.port=3001
+      # HTTP → HTTPS redirect
+      - traefik.http.routers.agencyos-http.rule=Host(`nedsdrishti.in`)
+      - traefik.http.routers.agencyos-http.entrypoints=web
+      - traefik.http.routers.agencyos-http.middlewares=agencyos-https-redirect
+      - traefik.http.middlewares.agencyos-https-redirect.redirectscheme.scheme=https
+      - traefik.http.middlewares.agencyos-https-redirect.redirectscheme.permanent=true
+
+volumes:
+  postgres_data:
+  uploads:
+  logs:
+
+networks:
+  internal:
+    driver: bridge
+  root_default:
+    external: true   # shared network that Traefik is already attached to

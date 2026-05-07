@@ -1,0 +1,405 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Agency & Branding
+model Agency {
+  id              String   @id @default(cuid())
+  name            String
+  logoUrl         String?
+  primaryColor    String   @default("#1a472a")
+  accentColor     String   @default("#c8522a")
+  fontFamily      String   @default("Inter")
+  reportFooter    String?
+  reportTagline   String?
+  faviconUrl      String?
+  customDomain    String?
+  // API Keys (all AES-256 encrypted)
+  ahrefsKey       String?
+  dataforseKey    String?
+  psiApiKey       String?
+  anthropicKey    String?
+  gscClientId     String?
+  gscClientSecret String?
+  smtpHost        String?
+  smtpUser        String?
+  smtpPass        String?
+  aiMonthlyBudgetUsd Float  @default(20)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  users           User[]
+  clients         Client[]
+}
+
+// Users
+model User {
+  id                String         @id @default(cuid())
+  agencyId          String
+  agency            Agency         @relation(fields: [agencyId], references: [id])
+  email             String         @unique
+  name              String
+  role              Role           @default(AUDITOR)
+  avatarUrl         String?
+  passwordHash      String
+  lastLoginAt       DateTime?
+  isActive          Boolean        @default(true)
+  failedLoginCount  Int            @default(0)
+  lockedUntil       DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  assignments       ClientAssignment[]
+  notes             AuditNote[]
+  postDrafts        PostDraft[]
+  activities        ActivityLog[]
+  aiUsage           AIUsageLog[]
+  refreshTokens     RefreshToken[]
+  approvedPosts     PostDraft[]    @relation("PostApprovals")
+}
+
+enum Role {
+  OWNER
+  ACCOUNT_MANAGER
+  CONTENT_CREATOR
+  SEO_ANALYST
+  CLIENT
+  AUDITOR
+}
+
+// Refresh Tokens (hashed, rotated)
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// Clients
+model Client {
+  id               String            @id @default(cuid())
+  agencyId         String
+  agency           Agency            @relation(fields: [agencyId], references: [id])
+  name             String
+  domain           String
+  brandName        String?
+  industry         String?
+  targetAudience   String?
+  competitors      String[]
+  monthlyRetainer  Float?
+  contactName      String?
+  contactEmail     String?
+  notes            String?
+  status           ClientStatus      @default(ACTIVE)
+  aiMonthlyBudgetUsd Float?
+  onboardingComplete Boolean         @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  assignments      ClientAssignment[]
+  auditProjects    AuditProject[]
+  platformScores   PlatformOptimization[]
+  personas         AudiencePersona[]
+  competitorData   CompetitorProfile[]
+  postDrafts       PostDraft[]
+  reports          GeneratedReport[]
+  hashtagSets      HashtagSet[]
+  contentIdeas     ContentIdea[]
+  aiUsage          AIUsageLog[]
+}
+
+enum ClientStatus {
+  ACTIVE
+  PAUSED
+  CHURNED
+}
+
+// Team Assignments
+model ClientAssignment {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([clientId, userId])
+}
+
+// ─── Audit Module ────────────────────────────────────────────────────────────
+
+model AuditProject {
+  id          String        @id @default(cuid())
+  clientId    String
+  client      Client        @relation(fields: [clientId], references: [id])
+  name        String
+  status      AuditStatus   @default(IN_PROGRESS)
+  overallScore Int?
+  competitorDomains String[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  checks      AuditCheck[]
+  notes       AuditNote[]
+}
+
+enum AuditStatus {
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+model AuditCheck {
+  id           String          @id @default(cuid())
+  auditId      String
+  audit        AuditProject    @relation(fields: [auditId], references: [id])
+  moduleId     String          // e.g. "website_seo", "social_media"
+  checkId      String          // e.g. "ssl_check", "pagespeed"
+  status       AuditCheckStatus @default(PENDING)
+  score        Int?
+  weight       Int             @default(1)
+  data         Json?
+  aiSuggestion String?
+  lastCheckedAt DateTime?
+  updatedAt    DateTime        @updatedAt
+  notes        AuditNote[]
+}
+
+enum AuditCheckStatus {
+  PENDING
+  PASS
+  WARN
+  FAIL
+  NA
+}
+
+model AuditNote {
+  id           String       @id @default(cuid())
+  auditId      String?
+  audit        AuditProject? @relation(fields: [auditId], references: [id])
+  checkId      String?
+  auditCheck   AuditCheck?  @relation(fields: [checkId], references: [id])
+  authorId     String
+  author       User         @relation(fields: [authorId], references: [id])
+  content      String
+  isInternal   Boolean      @default(true)
+  mentions     String[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+// ─── Platform Optimization ────────────────────────────────────────────────────
+
+model PlatformOptimization {
+  id         String         @id @default(cuid())
+  clientId   String
+  client     Client         @relation(fields: [clientId], references: [id])
+  platform   Platform
+  score      Int            @default(0)
+  updatedAt  DateTime       @updatedAt
+  createdAt  DateTime       @default(now())
+  checks     PlatformCheck[]
+  scoreHistory PlatformScoreHistory[]
+
+  @@unique([clientId, platform])
+}
+
+enum Platform {
+  LINKEDIN
+  INSTAGRAM
+  FACEBOOK
+  GBP
+  YOUTUBE
+  TWITTER
+  TIKTOK
+  PINTEREST
+  GOOGLE_ADS
+  EMAIL
+  WHATSAPP
+}
+
+model PlatformCheck {
+  id             String               @id @default(cuid())
+  optimizationId String
+  optimization   PlatformOptimization @relation(fields: [optimizationId], references: [id])
+  checkId        String
+  status         CheckStatus          @default(PENDING)
+  score          Int?
+  notes          String?
+  aiSuggestion   String?
+  manualInput    String?
+  updatedAt      DateTime             @updatedAt
+  createdAt      DateTime             @default(now())
+
+  @@unique([optimizationId, checkId])
+}
+
+enum CheckStatus {
+  PENDING
+  PASS
+  WARN
+  FAIL
+  NA
+}
+
+model PlatformScoreHistory {
+  id             String               @id @default(cuid())
+  optimizationId String
+  optimization   PlatformOptimization @relation(fields: [optimizationId], references: [id])
+  score          Int
+  recordedAt     DateTime             @default(now())
+}
+
+// ─── Content Studio ───────────────────────────────────────────────────────────
+
+model PostDraft {
+  id               String         @id @default(cuid())
+  clientId         String
+  client           Client         @relation(fields: [clientId], references: [id])
+  createdById      String
+  createdBy        User           @relation(fields: [createdById], references: [id])
+  platforms        Platform[]
+  caption          String
+  hashtags         String[]
+  mediaUrls        String[]
+  altTexts         String[]
+  platformOverrides Json?
+  scheduledAt      DateTime?
+  status           PostStatus     @default(DRAFT)
+  approvalStatus   ApprovalStatus @default(PENDING)
+  approvedById     String?
+  approvedBy       User?          @relation("PostApprovals", fields: [approvedById], references: [id])
+  notes            String         @default("")
+  aiGenerated      Boolean        @default(false)
+  performance      Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+  ARCHIVED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ContentIdea {
+  id         String      @id @default(cuid())
+  clientId   String
+  client     Client      @relation(fields: [clientId], references: [id])
+  platform   Platform
+  title      String
+  format     String
+  hook       String
+  outline    String
+  status     IdeaStatus  @default(SAVED)
+  usedInPost String?
+  createdAt  DateTime    @default(now())
+}
+
+enum IdeaStatus {
+  SAVED
+  USED
+  REJECTED
+}
+
+// ─── AI Studio ────────────────────────────────────────────────────────────────
+
+model AIUsageLog {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  clientId     String?
+  client       Client?  @relation(fields: [clientId], references: [id])
+  toolId       String
+  inputTokens  Int
+  outputTokens Int
+  costUsd      Float
+  cached       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+// ─── Research Tools ───────────────────────────────────────────────────────────
+
+model HashtagSet {
+  id         String   @id @default(cuid())
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id])
+  platform   Platform
+  topic      String
+  niche      String?
+  hashtags   Json
+  createdAt  DateTime @default(now())
+}
+
+model AudiencePersona {
+  id              String   @id @default(cuid())
+  clientId        String
+  client          Client   @relation(fields: [clientId], references: [id])
+  name            String
+  demographics    Json
+  psychographics  Json
+  digitalBehavior Json
+  painPoints      String[]
+  goals           String[]
+  objections      String[]
+  contentTriggers String[]
+  messagingGuide  Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model CompetitorProfile {
+  id            String   @id @default(cuid())
+  clientId      String
+  client        Client   @relation(fields: [clientId], references: [id])
+  name          String
+  website       String?
+  platforms     Json
+  automatedData Json?
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+}
+
+// ─── Reports & Activity ───────────────────────────────────────────────────────
+
+model GeneratedReport {
+  id        String     @id @default(cuid())
+  clientId  String
+  client    Client     @relation(fields: [clientId], references: [id])
+  type      ReportType
+  period    String
+  pdfUrl    String
+  data      Json
+  createdAt DateTime   @default(now())
+}
+
+enum ReportType {
+  MONTHLY
+  PLATFORM_SPECIFIC
+  AUDIT_ONLY
+  CUSTOM
+}
+
+model ActivityLog {
+  id           String   @id @default(cuid())
+  agencyId     String
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  action       String
+  resourceType String
+  resourceId   String
+  metadata     Json?
+  createdAt    DateTime @default(now())
+}

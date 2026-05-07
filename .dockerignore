@@ -1,0 +1,40 @@
+node_modules
+*/node_modules
+
+# Compiled output — built fresh inside Docker
+dist
+*/dist
+server/dist
+client/dist
+shared/dist
+
+# Windows lock files embed wrong native binary URLs for linux-x64-musl
+package-lock.json
+*/package-lock.json
+
+# Secrets — never bake into the image
+.env
+.env.*
+!.env.example
+
+# Runtime dirs — mapped to Docker volumes
+uploads
+logs
+
+# Dev / CI artefacts
+coverage
+.nyc_output
+*.log
+
+# VCS and editor
+.git
+.gitignore
+.claude
+
+# Docs and scripts not needed at runtime
+*.md
+scripts
+
+# OS noise
+.DS_Store
+Thumbs.db
