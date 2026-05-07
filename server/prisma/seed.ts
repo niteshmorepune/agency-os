@@ -6,25 +6,25 @@ const prisma = new PrismaClient();
 async function main() {
   // Agency
   const agency = await prisma.agency.upsert({
-    where: { id: 'agency_apex' },
+    where: { id: 'agency_neds' },
     update: {},
     create: {
-      id: 'agency_apex',
-      name: 'Apex Digital Agency',
+      id: 'agency_neds',
+      name: 'Niranjan Enterprises Digital Solutions',
       primaryColor: '#1a472a',
       accentColor: '#c8522a',
       fontFamily: 'Inter',
-      reportTagline: 'Premium Digital Marketing Solutions',
+      reportTagline: 'Digital Growth for Modern Businesses',
       aiMonthlyBudgetUsd: 50,
     },
   });
 
   // Users
   const users = [
-    { id: 'user_owner', email: 'owner@apex.agency', name: 'Alex Owner', role: 'OWNER' as const, password: 'Owner1234!' },
-    { id: 'user_manager', email: 'manager@apex.agency', name: 'Morgan Manager', role: 'ACCOUNT_MANAGER' as const, password: 'Manager1234!' },
-    { id: 'user_creator', email: 'creator@apex.agency', name: 'Casey Creator', role: 'CONTENT_CREATOR' as const, password: 'Creator1234!' },
-    { id: 'user_analyst', email: 'analyst@apex.agency', name: 'Sam Analyst', role: 'SEO_ANALYST' as const, password: 'Analyst1234!' },
+    { id: 'user_owner', email: 'owner@nedsdrishti.in', name: 'Niranjan', role: 'OWNER' as const, password: 'Owner1234!' },
+    { id: 'user_manager', email: 'manager@nedsdrishti.in', name: 'Account Manager', role: 'ACCOUNT_MANAGER' as const, password: 'Manager1234!' },
+    { id: 'user_creator', email: 'creator@nedsdrishti.in', name: 'Content Creator', role: 'CONTENT_CREATOR' as const, password: 'Creator1234!' },
+    { id: 'user_analyst', email: 'analyst@nedsdrishti.in', name: 'SEO Analyst', role: 'SEO_ANALYST' as const, password: 'Analyst1234!' },
   ];
 
   for (const u of users) {
@@ -175,11 +175,12 @@ async function main() {
   });
 
   console.log('✅ Seed data created successfully');
+  console.log('   Agency: Niranjan Enterprises Digital Solutions');
   console.log('   Logins:');
-  console.log('   owner@apex.agency / Owner1234!');
-  console.log('   manager@apex.agency / Manager1234!');
-  console.log('   creator@apex.agency / Creator1234!');
-  console.log('   analyst@apex.agency / Analyst1234!');
+  console.log('   owner@nedsdrishti.in / Owner1234!');
+  console.log('   manager@nedsdrishti.in / Manager1234!');
+  console.log('   creator@nedsdrishti.in / Creator1234!');
+  console.log('   analyst@nedsdrishti.in / Analyst1234!');
 }
 
 main()
