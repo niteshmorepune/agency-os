@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, TrendingUp, AlertTriangle, XCircle, ChevronRight } from 'lucide-react';
+import { ArrowLeft, TrendingUp, AlertTriangle, XCircle, ChevronRight, Download, RefreshCw } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
@@ -81,6 +82,24 @@ function buildChartData(history: ScoreHistoryEntry[]) {
 export default function OptimizeClient() {
   const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
+  const [downloading, setDownloading] = useState(false);
+
+  const downloadClientReport = async () => {
+    setDownloading(true);
+    try {
+      const response = await fetch(`/api/reports/client/${clientId}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `client-report-${clientId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const { data: clientData } = useQuery({
     queryKey: ['client', clientId],
@@ -129,7 +148,7 @@ export default function OptimizeClient() {
             <span>/</span>
             <span>Platform Optimizer</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <h1 className="text-2xl font-bold text-gray-900">Platform Optimizer</h1>
             {platforms.length > 0 && (
               <div className="flex items-center gap-2 bg-primary-50 rounded-xl px-4 py-1.5">
@@ -137,6 +156,14 @@ export default function OptimizeClient() {
                 <span className="text-sm font-semibold text-primary-800">Avg Score: {avgScore}</span>
               </div>
             )}
+            <button
+              onClick={downloadClientReport}
+              disabled={downloading}
+              className="btn-secondary text-sm flex items-center gap-2 ml-auto"
+            >
+              {downloading ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
+              {downloading ? 'Generating…' : 'Client Report'}
+            </button>
           </div>
           <p className="text-gray-500 mt-0.5 text-sm">Click a platform to review and update checks</p>
         </div>

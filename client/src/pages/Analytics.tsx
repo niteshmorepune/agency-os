@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
   Users, Zap, DollarSign, FileText, TrendingUp,
-  CheckCircle, Clock, BarChart2, Bot, ChevronRight,
+  CheckCircle, Clock, BarChart2, Bot, ChevronRight, Download, RefreshCw,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -121,6 +122,24 @@ function ScoreRing({ score, size = 64 }: { score: number; size?: number }) {
 export default function Analytics() {
   const now = new Date();
   const monthName = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const [downloading, setDownloading] = useState(false);
+
+  const downloadMonthlyReport = async () => {
+    setDownloading(true);
+    try {
+      const response = await fetch(`/api/reports/monthly?year=${now.getFullYear()}&month=${now.getMonth() + 1}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `agency-report-${now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).replace(' ', '-')}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ['analytics-summary'],
@@ -172,6 +191,14 @@ export default function Analytics() {
           <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
           <p className="text-gray-500 mt-1 text-sm">Agency-wide performance overview · {monthName}</p>
         </div>
+        <button
+          onClick={downloadMonthlyReport}
+          disabled={downloading}
+          className="btn-primary text-sm flex items-center gap-2 flex-shrink-0"
+        >
+          {downloading ? <RefreshCw size={15} className="animate-spin" /> : <Download size={15} />}
+          {downloading ? 'Generating PDF…' : 'Monthly Report PDF'}
+        </button>
       </div>
 
       {/* Summary cards */}
