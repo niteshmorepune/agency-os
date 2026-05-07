@@ -29,7 +29,7 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 router.put('/:id', asyncHandler(async (req, res) => {
-  const schema = z.object({ name: z.string().min(1).optional(), role: z.string().optional(), isActive: z.boolean().optional() });
+  const schema = z.object({ name: z.string().min(1).optional(), role: z.enum(['OWNER', 'ACCOUNT_MANAGER', 'CONTENT_CREATOR', 'SEO_ANALYST', 'CLIENT']).optional(), isActive: z.boolean().optional() });
   const data = schema.parse(req.body);
   const user = await prisma.user.update({ where: { id: req.params.id, agencyId: req.user!.agencyId }, data, select: { id: true, email: true, name: true, role: true, isActive: true } });
   res.json({ data: user });

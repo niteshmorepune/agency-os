@@ -10,7 +10,7 @@ export const prisma = globalForPrisma.prisma || new PrismaClient({
   ],
 });
 
-prisma.$on('error', (e: { message: string; target: string }) => {
+(prisma as any).$on('error', (e: { message: string; target: string }) => {
   logger.error({ msg: 'Prisma error', message: e.message, target: e.target });
 });
 

@@ -1,3 +1,4 @@
+import { CheckStatus } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { JwtPayload, Platform } from '@agencyos/shared';
 import { runAITool } from './ai/client';
@@ -38,7 +39,7 @@ export async function updateCheck(
   clientId: string,
   platform: Platform,
   checkId: string,
-  data: { status?: string; score?: number; notes?: string; manualInput?: string },
+  data: { status?: CheckStatus; score?: number; notes?: string; manualInput?: string },
   user: JwtPayload
 ) {
   const opt = await prisma.platformOptimization.findUnique({ where: { clientId_platform: { clientId, platform } } });
