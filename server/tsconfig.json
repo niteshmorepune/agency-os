@@ -13,7 +13,7 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "paths": {
-      "@agencyos/shared": ["../shared/src"]
+      "@agencyos/shared": ["../shared/dist"]
     }
   },
   "include": ["src"],
