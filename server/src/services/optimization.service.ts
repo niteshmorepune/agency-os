@@ -111,3 +111,75 @@ export async function getAISuggestion(clientId: string, platform: Platform, chec
 
   return result;
 }
+
+export async function getActionItems(clientId: string, user: JwtPayload, limit = 20) {
+  const client = await prisma.client.findFirst({ where: { id: clientId, agencyId: user.agencyId } });
+  if (!client) throw Object.assign(new Error('Client not found'), { statusCode: 404 });
+
+  const checks = await prisma.platformCheck.findMany({
+    where: {
+      status: { in: ['FAIL', 'WARN'] },
+      optimization: { clientId },
+    },
+    include: { optimization: { select: { platform: true, score: true } } },
+    orderBy: [{ status: 'asc' }],
+    take: 100,
+  });
+
+  // Enrich with definition metadata and sort by weight desc
+  const enriched = checks.map(c => {
+    const defs = PLATFORM_CHECKS[c.optimization.platform] ?? [];
+    const def = defs.find(d => d.id === c.checkId);
+    return {
+      id: c.id,
+      checkId: c.checkId,
+      platform: c.optimization.platform,
+      platformScore: c.optimization.score,
+      status: c.status,
+      name: def?.name ?? c.checkId,
+      description: def?.description,
+      benchmark: def?.benchmark,
+      category: def?.category ?? 'general',
+      weight: def?.weight ?? 1,
+      aiSuggestion: c.aiSuggestion,
+    };
+  }).sort((a, b) => b.weight - a.weight);
+
+  return enriched.slice(0, limit);
+}
+
+export async function bulkAISuggestions(clientId: string, platform: Platform, user: JwtPayload) {
+  const client = await prisma.client.findFirst({ where: { id: clientId, agencyId: user.agencyId } });
+  if (!client) throw Object.assign(new Error('Client not found'), { statusCode: 404 });
+
+  const opt = await prisma.platformOptimization.findUnique({ where: { clientId_platform: { clientId, platform } } });
+  if (!opt) throw Object.assign(new Error('Platform not initialised — open it first'), { statusCode: 404 });
+
+  const defs = PLATFORM_CHECKS[platform] ?? [];
+  const checks = await prisma.platformCheck.findMany({
+    where: { optimizationId: opt.id, status: { in: ['FAIL', 'WARN', 'PENDING'] }, aiSuggestion: null },
+  });
+
+  let processed = 0;
+  for (const check of checks) {
+    const def = defs.find(d => d.id === check.checkId);
+    if (!def) continue;
+    try {
+      const { result } = await runAITool({
+        toolId: 'audit_suggest',
+        systemPrompt: `You are an expert digital marketing strategist. Give a specific, actionable improvement recommendation for this ${platform} check in 3–5 sentences. Include concrete examples or metrics.`,
+        userPrompt: `Platform: ${platform}\nCheck: ${def.name}\nDescription: ${def.description ?? ''}\nBenchmark: ${def.benchmark ?? 'N/A'}\nStatus: ${check.status}\n\nProvide a targeted, actionable recommendation.`,
+        inputs: { platform, checkId: check.checkId, status: check.status },
+        user,
+        clientId,
+        clientContext: { brandName: client.brandName ?? client.name, industry: client.industry ?? undefined, targetAudience: client.targetAudience ?? undefined },
+      });
+      await prisma.platformCheck.update({ where: { id: check.id }, data: { aiSuggestion: result } });
+      processed++;
+    } catch {
+      // skip on budget exceeded or other errors — continue processing remaining
+    }
+  }
+
+  return { processed, total: checks.length };
+}

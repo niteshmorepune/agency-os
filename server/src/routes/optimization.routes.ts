@@ -14,7 +14,13 @@ router.get('/:clientId', asyncHandler(async (req, res) => {
   res.json({ data });
 }));
 
-// score-history must come BEFORE /:clientId/:platform to avoid being matched as platform="score-history"
+// Static sub-routes must come BEFORE /:clientId/:platform
+router.get('/:clientId/action-items', asyncHandler(async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+  const data = await optService.getActionItems(req.params.clientId, req.user!, limit);
+  res.json({ data });
+}));
+
 router.get('/:clientId/score-history', asyncHandler(async (req, res) => {
   const history = await prisma.platformScoreHistory.findMany({
     where: { optimization: { clientId: req.params.clientId } },
@@ -46,6 +52,12 @@ router.put('/:clientId/:platform/check/:checkId', asyncHandler(async (req, res) 
 router.post('/:clientId/:platform/ai-suggest/:checkId', asyncHandler(async (req, res) => {
   const platform = req.params.platform.toUpperCase() as Platform;
   const result = await optService.getAISuggestion(req.params.clientId, platform, req.params.checkId, req.user!);
+  res.json({ data: result });
+}));
+
+router.post('/:clientId/:platform/ai-suggest-all', asyncHandler(async (req, res) => {
+  const platform = req.params.platform.toUpperCase() as Platform;
+  const result = await optService.bulkAISuggestions(req.params.clientId, platform, req.user!);
   res.json({ data: result });
 }));
 

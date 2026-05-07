@@ -223,6 +223,8 @@ function CheckRow({
 export default function OptimizePlatform() {
   const { clientId, platform } = useParams<{ clientId: string; platform: string }>();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ processed: number; total: number } | null>(null);
   const qc = useQueryClient();
   const platformUpper = platform?.toUpperCase() ?? '';
   const meta = PLATFORM_META[platformUpper];
@@ -296,12 +298,37 @@ export default function OptimizePlatform() {
             <div className="flex items-center gap-2 text-gray-400"><Clock size={15} />{pending} pending</div>
           </div>
         </div>
-        <button
-          onClick={() => qc.invalidateQueries({ queryKey: ['optimization-platform', clientId, platformUpper] })}
-          className="btn-secondary text-sm"
-        >
-          ↺ Refresh scores
-        </button>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => qc.invalidateQueries({ queryKey: ['optimization-platform', clientId, platformUpper] })}
+            className="btn-secondary text-sm"
+          >
+            ↺ Refresh scores
+          </button>
+          <button
+            disabled={bulkRunning}
+            onClick={async () => {
+              setBulkRunning(true);
+              setBulkResult(null);
+              try {
+                const res = await api.post<{ data: { processed: number; total: number } }>(
+                  `/optimization/${clientId}/${platformUpper}/ai-suggest-all`, {}
+                );
+                setBulkResult(res.data);
+                qc.invalidateQueries({ queryKey: ['optimization-platform', clientId, platformUpper] });
+              } finally {
+                setBulkRunning(false);
+              }
+            }}
+            className="btn-secondary text-sm flex items-center gap-2"
+          >
+            <Sparkles size={14} className="text-purple-500" />
+            {bulkRunning ? 'Running AI…' : 'Run AI for All'}
+          </button>
+          {bulkResult && (
+            <p className="text-xs text-green-600 font-medium">{bulkResult.processed}/{bulkResult.total} suggestions generated</p>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-5">

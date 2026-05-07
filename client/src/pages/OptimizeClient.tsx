@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, TrendingUp } from 'lucide-react';
+import { ArrowLeft, TrendingUp, AlertTriangle, XCircle, ChevronRight } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
@@ -25,6 +25,19 @@ interface ClientBasic {
   id: string;
   name: string;
   domain: string;
+}
+
+interface ActionItem {
+  id: string;
+  checkId: string;
+  platform: string;
+  platformScore: number;
+  status: string;
+  name: string;
+  description?: string;
+  benchmark?: string;
+  weight: number;
+  aiSuggestion: string | null;
 }
 
 const PLATFORM_META: Record<string, { label: string; color: string; bg: string }> = {
@@ -84,6 +97,12 @@ export default function OptimizeClient() {
   const { data: historyData } = useQuery({
     queryKey: ['optimization-history', clientId],
     queryFn: () => api.get<{ data: ScoreHistoryEntry[] }>(`/optimization/${clientId}/score-history`),
+    enabled: !!clientId,
+  });
+
+  const { data: actionData } = useQuery({
+    queryKey: ['optimization-actions', clientId],
+    queryFn: () => api.get<{ data: ActionItem[] }>(`/optimization/${clientId}/action-items?limit=10`),
     enabled: !!clientId,
   });
 
@@ -197,6 +216,43 @@ export default function OptimizeClient() {
       {chartData.length <= 1 && platforms.length > 0 && (
         <div className="card p-5 text-center text-gray-400 text-sm">
           Score history chart will appear after you update checks across multiple sessions.
+        </div>
+      )}
+
+      {/* Priority Action Items */}
+      {(actionData?.data ?? []).length > 0 && (
+        <div className="card p-6 space-y-3">
+          <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+            <AlertTriangle size={16} className="text-amber-500" />
+            Priority Action Items
+            <span className="text-xs font-normal text-gray-400 ml-1">highest-weight failures first</span>
+          </h2>
+          <div className="space-y-2">
+            {(actionData?.data ?? []).map(item => (
+              <Link
+                key={item.id}
+                to={`/optimize/${clientId}/${item.platform}`}
+                className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50/40 transition-all group"
+              >
+                <div className={`flex-shrink-0 ${item.status === 'FAIL' ? 'text-red-500' : 'text-yellow-500'}`}>
+                  {item.status === 'FAIL' ? <XCircle size={16} /> : <AlertTriangle size={16} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-gray-900 truncate">{item.name}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 flex-shrink-0">
+                      {PLATFORM_META[item.platform]?.label ?? item.platform}
+                    </span>
+                    <span className="text-xs text-gray-400 flex-shrink-0">weight {item.weight}×</span>
+                  </div>
+                  {item.description && (
+                    <p className="text-xs text-gray-400 truncate mt-0.5">{item.description}</p>
+                  )}
+                </div>
+                <ChevronRight size={15} className="text-gray-300 group-hover:text-primary-500 flex-shrink-0 transition-colors" />
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </div>
