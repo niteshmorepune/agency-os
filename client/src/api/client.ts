@@ -21,7 +21,9 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
     if (refreshed) {
       return apiFetch(path, options);
     }
-    window.location.href = '/login';
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
     throw new Error('Session expired');
   }
 
