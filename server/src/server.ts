@@ -22,6 +22,8 @@ import notificationsRoutes from './routes/notifications.routes';
 import mediaRoutes from './routes/media.routes';
 import hashtagsRoutes from './routes/hashtags.routes';
 import templatesRoutes from './routes/templates.routes';
+import invoicesRoutes from './routes/invoices.routes';
+import activityRoutes from './routes/activity.routes';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -70,6 +72,8 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/hashtags', hashtagsRoutes);
 app.use('/api/templates', templatesRoutes);
+app.use('/api/invoices', invoicesRoutes);
+app.use('/api/activity', activityRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

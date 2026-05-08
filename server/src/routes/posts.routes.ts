@@ -4,6 +4,7 @@ import { authenticate, requireRole } from '../middleware/auth.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
 import { createNotification } from '../lib/notify';
+import { logActivity } from '../lib/activity';
 import { Role } from '@agencyos/shared';
 import DOMPurify from 'isomorphic-dompurify';
 
@@ -106,6 +107,14 @@ router.post('/:id/approve', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), async
       link: `/content/${post.id}/edit`,
     });
   }
+  await logActivity({
+    agencyId: req.user!.agencyId,
+    userId: req.user!.userId,
+    action: 'POST_APPROVED',
+    resourceType: 'PostDraft',
+    resourceId: post.id,
+    metadata: { caption: post.caption.slice(0, 80) },
+  });
   res.json({ data: updated });
 }));
 
@@ -123,6 +132,14 @@ router.post('/:id/reject', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncH
       link: `/content/${post.id}/edit`,
     });
   }
+  await logActivity({
+    agencyId: req.user!.agencyId,
+    userId: req.user!.userId,
+    action: 'POST_REJECTED',
+    resourceType: 'PostDraft',
+    resourceId: post.id,
+    metadata: { caption: post.caption.slice(0, 80) },
+  });
   res.json({ data: updated });
 }));
 

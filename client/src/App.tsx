@@ -26,6 +26,9 @@ import ContentCalendar from './pages/ContentCalendar';
 import ContentIdeas from './pages/ContentIdeas';
 import MediaLibrary from './pages/MediaLibrary';
 import Help from './pages/Help';
+import Invoices from './pages/Invoices';
+import InvoiceView from './pages/InvoiceView';
+import ActivityFeed from './pages/ActivityFeed';
 import NotFound from './pages/NotFound';
 
 const Spinner = () => (
@@ -99,6 +102,9 @@ export default function App() {
         <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
+        <Route path="/invoices" element={<AgencyOnlyRoute><Invoices /></AgencyOnlyRoute>} />
+        <Route path="/invoices/:id" element={<AgencyOnlyRoute><InvoiceView /></AgencyOnlyRoute>} />
+        <Route path="/activity" element={<AgencyOnlyRoute><ActivityFeed /></AgencyOnlyRoute>} />
         <Route path="/admin" element={<Navigate to="/settings" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutDashboard, Users, BarChart3, Zap, PenSquare, Settings, LogOut, Menu, X, ChevronRight, Bot, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Users, BarChart3, Zap, PenSquare, Settings, LogOut, Menu, X, ChevronRight, Bot, BookOpen, Receipt, Activity } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
 import { useUIStore } from '../store/ui.store';
@@ -17,6 +17,8 @@ const nav = [
   { label: 'Content', icon: PenSquare, href: '/content', roles: 'all' },
   { label: 'Analytics', icon: BarChart3, href: '/analytics', roles: 'all' },
   { label: 'Optimize', icon: Zap, href: '/optimize', roles: 'all' },
+  { label: 'Invoices', icon: Receipt, href: '/invoices', roles: [Role.OWNER, Role.ACCOUNT_MANAGER] },
+  { label: 'Activity', icon: Activity, href: '/activity', roles: [Role.OWNER] },
   { label: 'Settings', icon: Settings, href: '/admin', roles: [Role.OWNER] },
   { label: 'Help & Guide', icon: BookOpen, href: '/help', roles: 'all' },
 ];
