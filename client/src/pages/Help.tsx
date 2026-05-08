@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Search, BookOpen, Users, PenSquare, Bot, BarChart3, Zap, Settings, FileText, Bell, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, BookOpen, Users, PenSquare, Bot, BarChart3, Zap, Settings, FileText, Bell, CheckCircle, Receipt, Activity, User } from 'lucide-react';
 
 interface Section {
   id: string;
@@ -57,8 +57,8 @@ const SECTIONS: Section[] = [
         title: 'Navigating the app',
         content: [
           { type: 'para', text: 'The sidebar on the left is your main navigation. Click the hamburger icon (☰) in the top-left to expand or collapse it.' },
-          { type: 'steps', items: ['Dashboard — agency-wide stats at a glance', 'Clients — manage all client accounts', 'AI Studio — AI-powered content and audit tools', 'Content — compose, schedule, and manage posts', 'Analytics — reports and performance graphs', 'Optimize — platform-by-platform SEO checklists', 'Settings — branding, API keys, team (Owner only)'] },
-          { type: 'tip', text: 'The bell icon in the top-right shows real-time notifications for post approvals and completed audits.' },
+          { type: 'steps', items: ['Dashboard — agency-wide stats at a glance', 'Clients — manage all client accounts', 'AI Studio — AI-powered content and audit tools', 'Content — compose, schedule, and manage posts', 'Analytics — reports, performance graphs, and AI digest', 'Optimize — platform-by-platform SEO checklists', 'Invoices — create and manage client invoices (Owner · Account Manager)', 'Activity — full audit trail of team actions (Owner only)', 'Settings — branding, API keys, team, webhooks (Owner only)', 'Help & Guide — this page'] },
+          { type: 'tip', text: 'Click your name at the bottom of the sidebar at any time to open your Profile page and update your details or password.' },
         ],
       },
     ],
@@ -140,10 +140,11 @@ const SECTIONS: Section[] = [
         ],
       },
       {
-        title: 'Post approval workflow',
+        title: 'Post approval and publish workflow',
         content: [
-          { type: 'para', text: 'Every post has an approval status: Pending → Approved or Rejected.' },
-          { type: 'steps', items: ['Content Creator saves a draft (status: Pending)', 'Account Manager or Owner opens the post and clicks Approve or Reject with feedback', 'On approval, the creator gets a notification (bell icon)', 'Approved posts can be scheduled; rejected posts go back to the creator for revision'] },
+          { type: 'para', text: 'Every post moves through: Draft → Pending → Approved → Published.' },
+          { type: 'steps', items: ['Content Creator saves a draft (approval status: Pending)', 'Account Manager or Owner reviews the post and clicks Approve or Reject', 'On approval, the creator gets a bell notification', 'Rejected posts return to the creator for revision', 'Once approved, Owner or Account Manager clicks Publish to mark the post as Published', 'Publishing fires any webhooks configured for the post.published event'] },
+          { type: 'note', text: 'A post must be Approved before it can be Published. You cannot publish a Pending or Rejected post.' },
           { type: 'tip', text: 'Client users see approved posts in their portal and can leave comments.' },
         ],
       },
@@ -260,7 +261,7 @@ const SECTIONS: Section[] = [
   {
     id: 'analytics',
     icon: <BarChart3 size={18} />,
-    title: 'Analytics',
+    title: 'Analytics & Reports',
     color: 'text-orange-600 bg-orange-50',
     articles: [
       {
@@ -274,6 +275,31 @@ const SECTIONS: Section[] = [
         content: [
           { type: 'steps', items: ['Go to Analytics → select a client', 'Click Download PDF Report — generates a branded PDF with all stats', 'The report uses your agency\'s branding (logo, colours) from Settings'] },
           { type: 'tip', text: 'Set up your agency branding in Settings → Branding before sending any reports to clients.' },
+        ],
+      },
+      {
+        title: 'Sending a client report by email',
+        role: 'Owner · Account Manager',
+        content: [
+          { type: 'steps', items: ['Open a Client → go to the Reports tab', 'Click "Send Report Now" — the system generates a PDF and emails it to the client\'s registered email', 'A confirmation toast appears once sent'] },
+          { type: 'note', text: 'SMTP must be configured in Settings → API Keys before email sending works.' },
+        ],
+      },
+      {
+        title: 'Scheduling automated monthly reports',
+        role: 'Owner · Account Manager',
+        content: [
+          { type: 'steps', items: ['Open a Client → go to the Reports tab', 'In the Schedule dropdown, select Monthly', 'Click Save Schedule — the system will auto-email the PDF report on the 1st of each month', 'To stop, set the schedule back to None'] },
+          { type: 'tip', text: 'The "Last sent" date shows when the report was most recently emailed, so you can confirm delivery.' },
+        ],
+      },
+      {
+        title: 'AI Weekly Digest',
+        role: 'Owner',
+        content: [
+          { type: 'para', text: 'The AI Weekly Digest gives you an instant AI-written summary of your agency\'s activity — clients, posts, audits, invoices, and top scores.' },
+          { type: 'steps', items: ['Go to Analytics → scroll to the "AI Weekly Digest" card', 'Click "Generate Digest" — Claude analyses all agency data and writes a narrative summary', 'Read the digest in-app, or click "Email Digest" to send it to the Owner\'s registered email'] },
+          { type: 'note', text: 'Generating a digest consumes AI tokens. It is not rate-limited, but use it thoughtfully.' },
         ],
       },
     ],
@@ -311,6 +337,103 @@ const SECTIONS: Section[] = [
         role: 'Owner',
         content: [
           { type: 'steps', items: ['Go to Settings → Team', 'Find the team member in the list', 'Select a new role from the dropdown next to their name', 'Change takes effect immediately on their next page load'] },
+        ],
+      },
+      {
+        title: 'Setting up webhooks',
+        role: 'Owner',
+        content: [
+          { type: 'para', text: 'Webhooks let you send real-time HTTP notifications to external tools (Zapier, Slack, your own systems) when events happen in the app.' },
+          { type: 'steps', items: ['Go to Settings → Webhooks', 'Click Add Webhook', 'Enter a name (e.g. "Slack notifications") and the endpoint URL', 'Tick the events you want to subscribe to (post.approved, invoice.paid, etc.)', 'Click Create — a signing secret is generated automatically'] },
+          { type: 'heading', text: 'Available events' },
+          { type: 'steps', items: ['post.approved — a post was approved by a manager', 'post.rejected — a post was sent back for revision', 'post.published — a post was marked as published', 'invoice.sent — an invoice was sent to the client', 'invoice.paid — an invoice was marked as paid', 'audit.completed — an audit was completed'] },
+        ],
+      },
+      {
+        title: 'Verifying webhook signatures',
+        role: 'Owner',
+        content: [
+          { type: 'para', text: 'Every webhook request is signed so your endpoint can confirm it came from this app.' },
+          { type: 'steps', items: ['Each request includes the header: X-Agency-Signature: sha256=<hex>', 'Also included: X-Agency-Timestamp and X-Agency-Event', 'Compute: HMAC-SHA256(secret, "<timestamp>.<body>") and compare with the header value', 'Reject any request where the signatures do not match'] },
+          { type: 'tip', text: 'Use the Rotate Secret button on a webhook to generate a new secret if you suspect a key has been leaked. Update your endpoint before rotating.' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'invoices',
+    icon: <Receipt size={18} />,
+    title: 'Invoices',
+    color: 'text-emerald-600 bg-emerald-50',
+    articles: [
+      {
+        title: 'Creating an invoice',
+        role: 'Owner · Account Manager',
+        content: [
+          { type: 'steps', items: ['Go to Invoices → click New Invoice', 'Select the client from the dropdown', 'Add line items: enter a description, quantity, and rate — the amount calculates automatically', 'Set an Issue Date and Due Date', 'Add Tax % if applicable', 'Click Save Invoice — it is saved as Draft with an auto-generated invoice number (INV-YYYY-NNN)'] },
+          { type: 'tip', text: 'Add any internal notes in the Notes field — they appear on the PDF but are clearly marked as internal.' },
+        ],
+      },
+      {
+        title: 'Invoice status workflow',
+        role: 'Owner · Account Manager',
+        content: [
+          { type: 'para', text: 'Invoices move through four statuses: Draft → Sent → Paid (or Overdue).' },
+          { type: 'steps', items: ['Draft — invoice is created but not shared with the client yet', 'Mark Sent — click "Mark as Sent" to record that the invoice has been shared; fires the invoice.sent webhook', 'Mark Paid — click "Mark as Paid" once payment is received; fires invoice.paid webhook', 'Mark Overdue — click "Mark as Overdue" if the due date passes without payment'] },
+          { type: 'note', text: 'Only Draft invoices can be deleted. Sent, Paid, and Overdue invoices are permanent records.' },
+        ],
+      },
+      {
+        title: 'Downloading an invoice PDF',
+        role: 'Owner · Account Manager',
+        content: [
+          { type: 'steps', items: ['Open any invoice', 'Click "Download PDF" in the top-right corner', 'A branded PDF is generated with your agency logo, colours, line items, and totals', 'The PDF opens in a new tab or downloads directly depending on your browser'] },
+          { type: 'tip', text: 'Make sure your agency branding (name, logo, primary colour) is set in Settings → Branding so the PDF looks professional.' },
+        ],
+      },
+      {
+        title: 'Tracking outstanding payments',
+        content: [
+          { type: 'steps', items: ['Go to the Invoices list page', 'The summary cards at the top show: Total Collected, Outstanding, and Overdue amounts', 'Use the status filter tabs (All / Draft / Sent / Paid / Overdue) to quickly find unpaid invoices', 'Filter by client using the dropdown to see all invoices for a specific account'] },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'activity',
+    icon: <Activity size={18} />,
+    title: 'Activity Log',
+    color: 'text-slate-600 bg-slate-50',
+    articles: [
+      {
+        title: 'Reading the activity feed',
+        role: 'Owner',
+        content: [
+          { type: 'para', text: 'The Activity Log gives you a full audit trail of every significant action taken in the app — posts approved, invoices created, audits completed, and more.' },
+          { type: 'steps', items: ['Go to Activity in the sidebar', 'Events are grouped by Today, Yesterday, and earlier dates', 'Each entry shows: who did it, what they did, which resource was affected, and when', 'Use the filter tabs at the top to filter by action type (e.g. show only POST_APPROVED events)'] },
+          { type: 'note', text: 'The Activity Log is read-only and cannot be edited or deleted. It is the source of truth for team accountability.' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'profile',
+    icon: <User size={18} />,
+    title: 'My Profile',
+    color: 'text-cyan-600 bg-cyan-50',
+    articles: [
+      {
+        title: 'Updating your name or email',
+        content: [
+          { type: 'steps', items: ['Click your name at the bottom of the sidebar — this opens the Profile page', 'Under Personal Details, edit your Full Name and/or Email Address', 'Click Save Changes'] },
+          { type: 'note', text: 'If you change your email address, use the new email to log in next time.' },
+        ],
+      },
+      {
+        title: 'Changing your password',
+        content: [
+          { type: 'steps', items: ['Go to Profile (click your name in the sidebar)', 'Scroll to the Change Password section', 'Enter your Current Password, then your New Password (minimum 8 characters)', 'Confirm the new password and click Change Password'] },
+          { type: 'tip', text: 'If you\'ve forgotten your current password, ask the Agency Owner to reset it for you from Settings → Team.' },
         ],
       },
     ],
