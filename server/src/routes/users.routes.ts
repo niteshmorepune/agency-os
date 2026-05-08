@@ -42,7 +42,7 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   if (!target) { res.status(404).json({ error: 'User not found' }); return; }
   if (target.role === 'OWNER') { res.status(400).json({ error: 'Cannot delete an Owner account' }); return; }
   try {
-    await prisma.user.delete({ where: { id: req.params.id } });
+    await prisma.user.delete({ where: { id: req.params.id, agencyId: req.user!.agencyId } });
     res.json({ message: 'User deleted' });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
