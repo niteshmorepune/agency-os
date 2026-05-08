@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { Role } from '@agencyos/shared';
 
 interface AuthUser {
@@ -18,10 +19,18 @@ interface AuthState {
   logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  isLoading: true,
-  setUser: (user) => set({ user, isLoading: false }),
-  setLoading: (isLoading) => set({ isLoading }),
-  logout: () => set({ user: null }),
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      isLoading: false,
+      setUser: (user) => set({ user, isLoading: false }),
+      setLoading: (isLoading) => set({ isLoading }),
+      logout: () => set({ user: null }),
+    }),
+    {
+      name: 'auth-user',
+      partialize: (state) => ({ user: state.user }),
+    },
+  ),
+);

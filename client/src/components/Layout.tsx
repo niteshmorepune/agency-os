@@ -1,5 +1,5 @@
 import { ReactNode, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, NavLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { LayoutDashboard, Users, BarChart3, Zap, PenSquare, Settings, LogOut, Menu, X, ChevronRight, Bot, BookOpen, Receipt, Activity } from 'lucide-react';
 import { api } from '../api/client';
@@ -38,7 +38,7 @@ export default function Layout({ children }: LayoutProps) {
   const { data: meData } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.get<{ data: typeof user }>('/auth/me'),
-    enabled: !user,
+    staleTime: 300_000,
   });
 
   const { data: brandingData } = useQuery({
@@ -107,15 +107,15 @@ export default function Layout({ children }: LayoutProps) {
         </nav>
 
         <div className="px-3 py-4 border-t border-gray-100">
-          <div className="flex items-center gap-3 px-3 py-2 mb-2">
+          <NavLink to="/profile" className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg hover:bg-gray-50 transition-colors group">
             <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-800 font-semibold text-sm">{user?.name?.[0] ?? '?'}</span>
+              <span className="text-primary-800 font-semibold text-sm">{user?.name?.[0]?.toUpperCase() ?? '?'}</span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+              <p className="text-sm font-medium text-gray-900 truncate group-hover:text-primary-800">{user?.name ?? 'My Profile'}</p>
               <p className="text-xs text-gray-500 truncate">{user?.role}</p>
             </div>
-          </div>
+          </NavLink>
           <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors w-full">
             <LogOut size={16} />
             Sign out

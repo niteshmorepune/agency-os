@@ -37,11 +37,7 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur mb-4">
-            <span className="text-3xl font-bold text-white">A</span>
-          </div>
-          <h1 className="text-3xl font-bold text-white">Agency OS</h1>
-          <p className="text-primary-200 mt-1">Premium Digital Marketing Platform</p>
+          <img src="/logo.png" alt="Niranjan Enterprises Digital Solutions" className="mx-auto mb-4 w-48 h-auto drop-shadow-lg" />
         </div>
 
         <div className="card p-8">
@@ -65,7 +61,7 @@ export default function Login() {
             </button>
           </form>
         </div>
-        <p className="text-center text-primary-300 text-sm mt-4">Apex Digital Agency — Internal Platform</p>
+        <p className="text-center text-primary-300 text-sm mt-4">Niranjan Enterprises Digital Solutions — Internal Platform</p>
       </div>
     </div>
   );

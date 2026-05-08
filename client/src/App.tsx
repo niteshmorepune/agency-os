@@ -29,6 +29,7 @@ import Help from './pages/Help';
 import Invoices from './pages/Invoices';
 import InvoiceView from './pages/InvoiceView';
 import ActivityFeed from './pages/ActivityFeed';
+import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 
 const Spinner = () => (
@@ -105,6 +106,7 @@ export default function App() {
         <Route path="/invoices" element={<AgencyOnlyRoute><Invoices /></AgencyOnlyRoute>} />
         <Route path="/invoices/:id" element={<AgencyOnlyRoute><InvoiceView /></AgencyOnlyRoute>} />
         <Route path="/activity" element={<AgencyOnlyRoute><ActivityFeed /></AgencyOnlyRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/admin" element={<Navigate to="/settings" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
