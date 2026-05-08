@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Search, BookOpen, Users, PenSquare, Bot, BarChart3, Zap, Settings, FileText, Bell, CheckCircle, Receipt, Activity, User } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, BookOpen, Users, PenSquare, Bot, BarChart3, Zap, Settings, FileText, Bell, CheckCircle, Receipt, Activity, User, Download, RefreshCw, Globe } from 'lucide-react';
 
 interface Section {
   id: string;
@@ -47,8 +47,7 @@ const SECTIONS: Section[] = [
               { name: 'Account Manager', color: 'bg-blue-100 text-blue-700', desc: 'Manage clients, content, audits, and reports. Cannot invite users or change settings.' },
               { name: 'Content Creator', color: 'bg-pink-100 text-pink-700', desc: 'Create and edit posts, use AI Studio, manage media. Cannot delete clients.' },
               { name: 'SEO Analyst', color: 'bg-green-100 text-green-700', desc: 'Run audits, fill platform checklists, view analytics. Read-only on content.' },
-              { name: 'Auditor', color: 'bg-yellow-100 text-yellow-700', desc: 'View-only access to audits and client data. No editing.' },
-              { name: 'Client', color: 'bg-gray-100 text-gray-700', desc: 'Sees their own portal only — posts pending approval, reports, branding.' },
+              { name: 'Client', color: 'bg-gray-100 text-gray-700', desc: 'Sees their own portal only — action items, messages, posts, platform scores, and PDF reports.' },
             ],
           },
         ],
@@ -57,7 +56,7 @@ const SECTIONS: Section[] = [
         title: 'Navigating the app',
         content: [
           { type: 'para', text: 'The sidebar on the left is your main navigation. Click the hamburger icon (☰) in the top-left to expand or collapse it.' },
-          { type: 'steps', items: ['Dashboard — agency-wide stats at a glance', 'Clients — manage all client accounts', 'AI Studio — AI-powered content and audit tools', 'Content — compose, schedule, and manage posts', 'Analytics — reports, performance graphs, and AI digest', 'Optimize — platform-by-platform SEO checklists', 'Invoices — create and manage client invoices (Owner · Account Manager)', 'Activity — full audit trail of team actions (Owner only)', 'Settings — branding, API keys, team, webhooks (Owner only)', 'Help & Guide — this page'] },
+          { type: 'steps', items: ['Dashboard — agency-wide stats at a glance', 'Clients — manage all client accounts', 'AI Studio — 10 AI-powered tools for content, research, and audits', 'Content — compose, schedule, and manage posts', 'Analytics — reports, performance graphs, and AI digest', 'Optimize — platform-by-platform SEO checklists with AI rewrite', 'Invoices — create and manage client invoices (Owner · Account Manager)', 'Activity — full audit trail of team actions (Owner only)', 'Settings — branding, API keys, team, webhooks (Owner only)', 'Help & Guide — this page'] },
           { type: 'tip', text: 'Click your name at the bottom of the sidebar at any time to open your Profile page and update your details or password.' },
         ],
       },
@@ -81,7 +80,7 @@ const SECTIONS: Section[] = [
         title: 'Assigning team members to a client',
         role: 'Owner · Account Manager',
         content: [
-          { type: 'steps', items: ['Open the client → click the detail card', 'Scroll to the Team section', 'Select a team member from the dropdown and click Assign', 'To remove someone, click the ✕ next to their name'] },
+          { type: 'steps', items: ['Open the client → click the Team tab', 'Select a team member from the dropdown and click Assign', 'To remove someone, click the trash icon next to their name'] },
           { type: 'para', text: 'Only assigned team members can see and work on that client\'s content, audits, and optimizations.' },
         ],
       },
@@ -98,7 +97,37 @@ const SECTIONS: Section[] = [
         role: 'Owner',
         content: [
           { type: 'steps', items: ['Go to Settings → Team', 'Enter the client\'s email and select role: Client', 'Click Invite — they receive an email with a login link'] },
-          { type: 'para', text: 'Client users see only their own portal: posts waiting for approval, published content, and their PDF reports.' },
+          { type: 'para', text: 'Client users see only their own portal: action items, messages, posts waiting for approval, platform scores, and PDF reports.' },
+        ],
+      },
+      {
+        title: 'Client onboarding questionnaire',
+        role: 'Owner · Account Manager',
+        content: [
+          { type: 'para', text: 'Send a branded, public questionnaire link to a new client so they can fill in their business details, goals, social handles, and brand voice — no login required.' },
+          { type: 'steps', items: ['Open the client → go to the Reports tab', 'Click "Send Onboarding Link" — the system generates a unique token and emails a branded form link to the client\'s contact email', 'The client opens the link and completes 4 steps: Business basics, Social handles, Goals & context, Brand identity', 'On submission their data is saved to the client record and a \'Thank you\' screen is shown', 'Onboarding data (goals, brand tone, words to avoid, etc.) becomes available to AI tools automatically'] },
+          { type: 'note', text: 'The link expires after 7 days. Resend it from the same Reports tab to generate a fresh token.' },
+          { type: 'tip', text: 'After the client submits the form, check the client\'s Overview tab — the brand tone, words to avoid, and primary location fields are pre-populated.' },
+        ],
+      },
+      {
+        title: 'Action Items — assigning tasks to clients',
+        role: 'Owner · Account Manager',
+        content: [
+          { type: 'para', text: 'Action Items are tasks or deliverables you assign to a client. They appear both in the client\'s portal and in your agency view.' },
+          { type: 'steps', items: ['Open the client → click the Action Items tab', 'Click "New Action Item" — enter a title, optional description, and optional due date', 'Click Create — the client receives an email notification and can see the item in their portal', 'Change status: click Start (moves to In Progress) or Done (marks as Completed)', 'Delete an item with the trash icon (items are permanently removed)'] },
+          { type: 'heading', text: 'Status flow' },
+          { type: 'steps', items: ['PENDING — just created, not started', 'IN PROGRESS — your team has started', 'COMPLETED — done and marked complete', 'CANCELLED — no longer relevant'] },
+          { type: 'note', text: 'Overdue items (past their due date) are highlighted with a red left border so they are easy to spot.' },
+        ],
+      },
+      {
+        title: 'Messaging clients in-app',
+        content: [
+          { type: 'para', text: 'Send and receive messages with a client directly inside the platform. Both agency team members and the client can initiate the conversation.' },
+          { type: 'steps', items: ['Agency side: Open the client → click the Messages tab', 'Type a message in the text box at the bottom and click Send (or press Enter)', 'The message thread refreshes every 30 seconds automatically', 'The client receives an email notification when a new message arrives', 'Client side: open their portal → scroll to the Messages section at the bottom'] },
+          { type: 'tip', text: 'Use Shift+Enter to add a line break without sending the message.' },
+          { type: 'note', text: 'Messages are sent per-client — they are not a shared team chat. Only agency members assigned to the client and the client themselves can see the thread.' },
         ],
       },
     ],
@@ -178,8 +207,9 @@ const SECTIONS: Section[] = [
       {
         title: 'What is AI Studio?',
         content: [
-          { type: 'para', text: 'AI Studio is a collection of Claude-powered tools for generating content, auditing profiles, and producing reports. Each tool is purpose-built for a specific agency task.' },
-          { type: 'tip', text: 'AI Studio tracks token usage per tool. Owners can view spend on the AI Usage page.' },
+          { type: 'para', text: 'AI Studio is a collection of 10 Claude-powered tools for generating content, researching audiences, auditing profiles, and producing reports. Each tool is purpose-built for a specific agency task.' },
+          { type: 'steps', items: ['Caption Generator — write platform-optimised captions in seconds', 'Hashtag Research — ranked hashtags with volume estimates', 'Profile Bio Writer — character-count-aware bios for any platform', 'Audit Report Writer — full narrative audit reports from checklist results', 'Content Repurposer — transform one piece of content into 5 platform formats', 'Audience Persona Builder — detailed audience persona with psychographics and messaging', 'Competitor Analyzer — side-by-side profile gap analysis vs. a competitor URL', 'Posting Time Optimizer — evidence-based optimal posting schedule grid by platform and location', 'Engagement Rate Analyzer — calculate, benchmark, and get AI recommendations to improve engagement', 'Viewing AI usage — track token spend per tool'] },
+          { type: 'tip', text: 'AI Studio tracks token usage per tool. Owners can view total spend on the AI Usage page (top-right link in AI Studio).' },
         ],
       },
       {
@@ -204,6 +234,45 @@ const SECTIONS: Section[] = [
         title: 'Audit Report Writer',
         content: [
           { type: 'steps', items: ['Select a client and choose a completed audit', 'Click Generate Report — AI writes a full narrative audit report', 'Review and edit inline', 'Click Download PDF to produce a client-ready PDF'] },
+        ],
+      },
+      {
+        title: 'Content Repurposer',
+        content: [
+          { type: 'para', text: 'Turn one piece of content (blog post, long caption, video script) into 5 platform-optimised formats at once.' },
+          { type: 'steps', items: ['Go to AI Studio → Content Repurposer', 'Select a client (optional — adds brand context)', 'Paste your original content into the input box', 'Select target platforms (e.g. LinkedIn, Instagram, Twitter/X, Facebook, Email)', 'Click Repurpose — AI rewrites the content natively for each platform', 'Copy each version individually or use them to populate the Content Composer'] },
+          { type: 'tip', text: 'The repurposer honours the client\'s brand tone and words-to-avoid if the onboarding questionnaire has been completed.' },
+        ],
+      },
+      {
+        title: 'Audience Persona Builder',
+        content: [
+          { type: 'para', text: 'Generate a detailed ideal customer persona complete with demographics, psychographics, pain points, content triggers, and a messaging guide.' },
+          { type: 'steps', items: ['Go to AI Studio → Audience Persona Builder', 'Select a client', 'Enter product or service description, industry, and any notes about the audience', 'Click Build Persona — AI creates a full persona document', 'The persona is saved to the client\'s record and available for future AI tool runs'] },
+        ],
+      },
+      {
+        title: 'Competitor Analyzer',
+        content: [
+          { type: 'para', text: 'Analyse a competitor\'s social profile and get a side-by-side gap analysis with actionable improvement recommendations.' },
+          { type: 'steps', items: ['Go to AI Studio → Competitor Analyzer', 'Select the client whose profile you want to compare', 'Enter the competitor\'s profile URL and platform', 'Click Analyze — AI audits key profile elements and identifies gaps', 'Receive a scored comparison with specific recommendations on what to fix'] },
+          { type: 'note', text: 'The analyzer uses publicly available profile information. Accuracy depends on what the competitor has made public.' },
+        ],
+      },
+      {
+        title: 'Posting Time Optimizer',
+        content: [
+          { type: 'para', text: 'Get an evidence-based weekly posting schedule grid for multiple platforms at once, tailored by audience location.' },
+          { type: 'steps', items: ['Go to AI Studio → Posting Time Optimizer', 'Select one or more platforms (LinkedIn, Instagram, Facebook, Twitter, YouTube, TikTok, Pinterest, WhatsApp, Email, Google Ads)', 'Choose audience location (India, Global, US, UK, UAE, Australia)', 'Set posts per week per platform', 'Optionally enter industry for AI custom advice', 'Click Generate Schedule — a colour-coded 7-day × 14-hour grid appears for each platform', 'Green = Optimal, Yellow = Acceptable, Grey = Avoid', 'After generating, click "Get AI Custom Advice" for industry-specific tips', 'Click CSV to export the recommended time slots'] },
+          { type: 'tip', text: 'Select the client from the dropdown to attach the schedule to their record for future reference.' },
+        ],
+      },
+      {
+        title: 'Engagement Rate Analyzer',
+        content: [
+          { type: 'para', text: 'Calculate an account\'s engagement rate, benchmark it against industry standards, and receive AI-powered recommendations to improve it.' },
+          { type: 'steps', items: ['Go to AI Studio → Engagement Rate Analyzer', 'Select a platform (Instagram, LinkedIn, Facebook, Twitter, TikTok, YouTube, Pinterest)', 'Enter followers, average likes per post (required), and optionally: average comments, shares/saves, and average reach', 'Add industry (e.g. Fashion, SaaS, Restaurant) for more accurate benchmarks', 'Click Analyze Engagement', 'See your engagement rate % with a rating (Excellent / Good / Average / Below Average / Poor)', 'View benchmarks: Poor / Average / Good thresholds for that platform', 'See your percentile — "Better than X% of accounts in your industry"', 'AI recommendations appear as cards with Impact and Effort ratings'] },
+          { type: 'tip', text: 'Results are cached — re-running with the same inputs instantly returns the previous result. Change any input to force a fresh analysis.' },
         ],
       },
       {
@@ -254,6 +323,15 @@ const SECTIONS: Section[] = [
         title: 'Reading the score',
         content: [
           { type: 'steps', items: ['Each checklist item is weighted equally', 'Score = checked items ÷ total items × 100', 'Green ≥70%, Yellow 40–69%, Red <40%', 'Aim for 100% on primary platforms before moving to secondary ones'] },
+        ],
+      },
+      {
+        title: 'AI Profile Rewrite — get 3 AI variants',
+        content: [
+          { type: 'para', text: 'For any checklist item that contains written copy (bio, headline, about section, ad copy, etc.), you can request 3 AI-written variants and apply the best one.' },
+          { type: 'steps', items: ['Open a platform checklist (e.g. LinkedIn, Instagram, Google Business Profile)', 'Find a text-based check (e.g. "LinkedIn Headline", "Instagram Bio", "GBP Description")', 'Click the "AI Rewrite" button next to that check', 'A slide-in panel opens showing 3 AI-generated variants, each within the platform\'s character limit', 'Click "Use This" on any variant to copy it, ready to paste into the profile', 'Optionally click "Regenerate" to get 3 fresh variants'] },
+          { type: 'tip', text: 'AI rewrites use the client\'s brand name, industry, and onboarding data automatically. Complete the onboarding questionnaire first for the best results.' },
+          { type: 'note', text: 'AI Rewrite is available for: LinkedIn Headline, LinkedIn About, Instagram Bio, Google Business Profile Description and Review Responses, YouTube About and Titles, Twitter/X Bio, TikTok Bio, Google Ads Copy, Email Subject Lines, and WhatsApp Auto-Reply.' },
         ],
       },
     ],
@@ -400,6 +478,43 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    id: 'client-portal',
+    icon: <Globe size={18} />,
+    title: 'Client Portal',
+    color: 'text-teal-600 bg-teal-50',
+    articles: [
+      {
+        title: 'What clients see in their portal',
+        content: [
+          { type: 'para', text: 'Clients with a Client role log in and land directly on their portal. They cannot access agency pages like Clients, AI Studio, or Settings.' },
+          { type: 'steps', items: ['Welcome banner — shows agency name, client name, domain, and overall platform score ring', 'Stats row — average platform score, active platforms, approved posts count, action items count', 'Platform Scores — progress bars for each platform that has been audited', 'Latest Audit — score ring and date of the most recent audit', 'Priority Actions — top optimization fixes flagged by the agency', 'Action Required — pending action items assigned by the agency (with due dates)', 'Messages — in-app message thread with the agency team', 'Approved Content — recent posts that have been approved'] },
+          { type: 'tip', text: 'The portal uses your agency\'s brand colours and logo set in Settings → Branding.' },
+        ],
+      },
+      {
+        title: 'Downloading a PDF report (client view)',
+        content: [
+          { type: 'steps', items: ['Log in as a client user — land on the portal', 'In the top-right of the welcome banner, click "Download My Report"', 'A branded PDF is generated and downloaded with all current platform stats and scores'] },
+          { type: 'note', text: 'Reports are generated on-demand — they always reflect the most current data at the time of download.' },
+        ],
+      },
+      {
+        title: 'Viewing and tracking action items (client view)',
+        content: [
+          { type: 'steps', items: ['Log in as a client — scroll to the "Action Required" section on the portal', 'All PENDING and IN PROGRESS items assigned by the agency are listed', 'Each item shows the title, description, due date, and current status', 'Overdue items are highlighted with a red background — these need immediate attention'] },
+          { type: 'note', text: 'Clients cannot create or close action items. Contact your Account Manager to update item status or add new ones.' },
+        ],
+      },
+      {
+        title: 'Messaging your account team (client view)',
+        content: [
+          { type: 'steps', items: ['Log in as a client — scroll to the "Messages" section at the bottom of the portal', 'Type a message in the input box and click Send (or press Enter)', 'Your account manager receives an email notification', 'Their reply appears in the thread — it refreshes every 30 seconds automatically'] },
+          { type: 'tip', text: 'Use messages for quick questions, sharing assets, or requesting changes. For formal deliverables use the Action Items system.' },
+        ],
+      },
+    ],
+  },
+  {
     id: 'activity',
     icon: <Activity size={18} />,
     title: 'Activity Log',
@@ -530,6 +645,26 @@ export default function Help() {
   const [search, setSearch] = useState('');
   const [openSection, setOpenSection] = useState<string | null>('getting-started');
   const [openArticle, setOpenArticle] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const downloadPDF = async () => {
+    setDownloading(true);
+    try {
+      const response = await fetch('/api/help/guide.pdf', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'NEDS-Drishti-Platform-Guide.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // silently fail — PDF endpoint may not be deployed yet
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const q = search.toLowerCase().trim();
 
@@ -557,6 +692,14 @@ export default function Help() {
           <h1 className="text-2xl font-bold text-gray-900">Help & Guide</h1>
           <p className="text-gray-500 mt-1 text-sm">{totalArticles} articles across {SECTIONS.length} modules</p>
         </div>
+        <button
+          onClick={downloadPDF}
+          disabled={downloading}
+          className="btn-secondary flex items-center gap-2 text-sm flex-shrink-0"
+        >
+          {downloading ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
+          {downloading ? 'Generating…' : 'Download PDF Guide'}
+        </button>
       </div>
 
       {/* Search */}

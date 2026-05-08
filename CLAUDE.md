@@ -57,6 +57,28 @@ Full-stack digital marketing platform. Monorepo: client/ (React+Vite), server/ (
 - Use /model sonnet for implementation (default)
 - Each module should be built in a clean context: finish one, /clear, start next
 
+## Prisma models added (session gap-fill)
+- `ClientActionItem` — per-client action items with status (PENDING/IN_PROGRESS/COMPLETED/CANCELLED), dueDate, createdById
+- `ClientMessage` — in-app messaging between agency and client; senderId/senderRole/senderName stored at write time
+- `OnboardingToken` — UUID token (unique per client, 7-day expiry) for public onboarding questionnaire
+
+## New API routes (session gap-fill)
+- `POST /api/onboarding/:token` / `GET /api/onboarding/:token` — public, no auth, token-based onboarding form
+- `GET|POST /api/clients/:id/action-items` — CRUD for action items; POST fires email to client
+- `PUT /api/clients/action-items/:itemId` — status update (any authenticated role)
+- `DELETE /api/clients/action-items/:itemId` — OWNER/AM only
+- `GET|POST /api/clients/:id/messages` — thread; POST fires email notification
+- `PUT /api/clients/:id/messages/read` — mark all messages read
+- `POST /api/clients/:id/onboarding/send-link` — generates token, emails branded link (OWNER/AM only)
+- `POST /api/ai/posting-times` — posting schedule grid + optional AI custom advice
+- `POST /api/ai/engagement-analyze` — engagement rate calculator + AI recommendations
+- `POST /api/optimize/:clientId/ai-rewrite` — platform optimizer AI rewrite with 3 variants per checkId
+
+## New AI tools (session gap-fill)
+- `posting_time` — deterministic schedule grid from `postingTimes.ts`, optional Claude custom advice
+- `engagement` — benchmark calculator from `engagementBenchmarks.ts`, Claude recs when rating is average/below/poor
+- `platform_rewrite` — per-checkId prompts in `platformRewrite.ts`, returns 3 JSON variants
+
 ## What to do when stuck
 1. Check shared/types.ts for interfaces before creating new ones
 2. Check server/src/services/ for existing service patterns before writing new ones
