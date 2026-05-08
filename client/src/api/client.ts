@@ -49,4 +49,14 @@ export const api = {
   put: <T>(path: string, body: unknown) => apiFetch<T>(path, { method: 'PUT', body }),
   patch: <T>(path: string, body: unknown) => apiFetch<T>(path, { method: 'PATCH', body }),
   delete: <T>(path: string, body?: unknown) => apiFetch<T>(path, { method: 'DELETE', body }),
+  upload: async <T>(path: string, formData: FormData): Promise<T> => {
+    const response = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Upload failed');
+    return data as T;
+  },
 };

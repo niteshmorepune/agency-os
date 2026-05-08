@@ -24,6 +24,7 @@ import ContentHome from './pages/ContentHome';
 import ContentComposer from './pages/ContentComposer';
 import ContentCalendar from './pages/ContentCalendar';
 import ContentIdeas from './pages/ContentIdeas';
+import MediaLibrary from './pages/MediaLibrary';
 import NotFound from './pages/NotFound';
 
 const Spinner = () => (
@@ -91,6 +92,7 @@ export default function App() {
         <Route path="/content" element={<ProtectedRoute><ContentHome /></ProtectedRoute>} />
         <Route path="/content/calendar" element={<ProtectedRoute><ContentCalendar /></ProtectedRoute>} />
         <Route path="/content/ideas" element={<ProtectedRoute><ContentIdeas /></ProtectedRoute>} />
+        <Route path="/content/media" element={<ProtectedRoute><MediaLibrary /></ProtectedRoute>} />
         <Route path="/content/new" element={<ProtectedRoute><ContentComposer /></ProtectedRoute>} />
         <Route path="/content/:postId/edit" element={<ProtectedRoute><ContentComposer /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />

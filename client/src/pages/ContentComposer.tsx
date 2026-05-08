@@ -5,8 +5,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { ArrowLeft, Sparkles, X, RefreshCw, CheckCircle, XCircle, Hash } from 'lucide-react';
+import { ArrowLeft, Sparkles, X, RefreshCw, CheckCircle, XCircle, Hash, Image, LayoutTemplate, BookMarked, Plus, Trash2 } from 'lucide-react';
 import { api } from '../api/client';
+import MediaPicker from '../components/MediaPicker';
 import { useAuthStore } from '../store/auth.store';
 import { Role } from '@agencyos/shared';
 
@@ -22,6 +23,7 @@ interface PostDraft {
   platforms: string[];
   caption: string;
   hashtags: string[];
+  mediaUrls: string[];
   scheduledAt: string | null;
   status: string;
   approvalStatus: string;
@@ -63,6 +65,12 @@ export default function ContentComposer() {
 
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [hashInput, setHashInput] = useState('');
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [showHashtagSets, setShowHashtagSets] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
 
@@ -88,6 +96,20 @@ export default function ContentComposer() {
     enabled: isEdit,
   });
 
+  const { data: templatesData } = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => api.get<{ data: { id: string; name: string; platform: string | null; caption: string; hashtags: string[] }[] }>('/templates'),
+    staleTime: 60_000,
+  });
+
+  const { data: hashtagSetsData } = useQuery({
+    queryKey: ['hashtag-sets', selectedClientId, selectedPlatforms[0]],
+    queryFn: () => api.get<{ data: { id: string; topic: string; hashtags: string[] }[] }>(
+      `/hashtags?clientId=${selectedClientId}${selectedPlatforms[0] ? `&platform=${selectedPlatforms[0]}` : ''}`
+    ),
+    enabled: !!selectedClientId && showHashtagSets,
+  });
+
   useEffect(() => {
     if (postData?.data) {
       const p = postData.data;
@@ -99,6 +121,7 @@ export default function ContentComposer() {
         scheduledAt: p.scheduledAt ? p.scheduledAt.slice(0, 16) : '',
       });
       setHashtags(p.hashtags ?? []);
+      setMediaUrls(p.mediaUrls ?? []);
     }
   }, [postData, reset]);
 
@@ -126,10 +149,31 @@ export default function ContentComposer() {
     onError: () => toast.error('Failed to reject post'),
   });
 
+  const saveAsTemplate = async () => {
+    if (!templateName.trim()) return;
+    setSavingTemplate(true);
+    try {
+      await api.post('/templates', {
+        name: templateName.trim(),
+        platform: selectedPlatforms[0] ?? null,
+        caption: watch('caption'),
+        hashtags,
+      });
+      qc.invalidateQueries({ queryKey: ['templates'] });
+      setTemplateName('');
+      toast.success('Template saved');
+    } catch {
+      toast.error('Failed to save template');
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
   const onSubmit = (values: FormValues, asDraft = true) => {
     const payload: Record<string, unknown> = {
       ...values,
       hashtags,
+      mediaUrls,
       scheduledAt: values.scheduledAt ? new Date(values.scheduledAt).toISOString() : null,
       status: asDraft ? 'DRAFT' : 'SCHEDULED',
     };
@@ -265,7 +309,59 @@ export default function ContentComposer() {
         {/* Caption */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="label mb-0">Caption <span className="text-red-400">*</span></label>
+            <div className="flex items-center gap-2">
+              <label className="label mb-0">Caption <span className="text-red-400">*</span></label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowTemplatePicker(v => !v)}
+                  className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors"
+                >
+                  <LayoutTemplate size={11} /> Templates
+                </button>
+                {showTemplatePicker && (
+                  <div className="absolute top-full left-0 mt-1 w-72 bg-white rounded-xl shadow-xl border border-gray-100 z-20 overflow-hidden">
+                    <div className="px-3 py-2 border-b border-gray-100">
+                      <p className="text-xs font-semibold text-gray-600">Pick a template</p>
+                    </div>
+                    <div className="max-h-52 overflow-y-auto">
+                      {(templatesData?.data ?? []).length === 0 ? (
+                        <p className="text-xs text-gray-400 px-3 py-4 text-center">No templates saved yet</p>
+                      ) : (
+                        (templatesData?.data ?? []).map(t => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => {
+                              setValue('caption', t.caption, { shouldDirty: true });
+                              if (t.hashtags?.length) setHashtags(t.hashtags);
+                              setShowTemplatePicker(false);
+                              toast.success(`Template "${t.name}" loaded`);
+                            }}
+                            className="w-full text-left px-3 py-2.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+                          >
+                            <p className="text-xs font-medium text-gray-800">{t.name}</p>
+                            <p className="text-[11px] text-gray-400 truncate mt-0.5">{t.caption.slice(0, 60)}…</p>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                    <div className="px-3 py-2 border-t border-gray-100 flex gap-2 items-center">
+                      <input
+                        value={templateName}
+                        onChange={e => setTemplateName(e.target.value)}
+                        placeholder="Save current as template…"
+                        className="input text-xs py-1.5 flex-1"
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveAsTemplate(); } }}
+                      />
+                      <button type="button" onClick={saveAsTemplate} disabled={!templateName.trim() || savingTemplate} className="btn-primary text-xs py-1.5 px-3">
+                        {savingTemplate ? '…' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               <span className={`text-xs ${overLimit ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
                 {charCount} / {strictestLimit}
@@ -313,7 +409,86 @@ export default function ContentComposer() {
             onKeyDown={handleHashKey}
             onBlur={() => { if (hashInput.trim()) addHashtag(hashInput); }}
           />
-          <p className="text-xs text-gray-400 mt-1">{hashtags.length} hashtag{hashtags.length !== 1 ? 's' : ''} · Press Enter or comma to add</p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-xs text-gray-400">{hashtags.length} hashtag{hashtags.length !== 1 ? 's' : ''} · Press Enter or comma to add</p>
+            {selectedClientId && (
+              <button
+                type="button"
+                onClick={() => setShowHashtagSets(v => !v)}
+                className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 font-medium"
+              >
+                <BookMarked size={11} /> {showHashtagSets ? 'Hide sets' : 'Load from saved sets'}
+              </button>
+            )}
+          </div>
+          {showHashtagSets && selectedClientId && (
+            <div className="mt-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
+              <p className="text-xs font-medium text-gray-600 mb-2">Saved Hashtag Sets</p>
+              {(hashtagSetsData?.data ?? []).length === 0 ? (
+                <p className="text-xs text-gray-400">No saved sets for this client/platform yet.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {(hashtagSetsData?.data ?? []).map(set => (
+                    <button
+                      key={set.id}
+                      type="button"
+                      onClick={() => {
+                        const toAdd = (set.hashtags as string[]).filter(t => !hashtags.includes(t));
+                        setHashtags(h => [...h, ...toAdd]);
+                        toast.success(`Added ${toAdd.length} hashtags from "${set.topic}"`);
+                      }}
+                      className="text-xs px-2.5 py-1 bg-white border border-gray-200 rounded-full text-gray-700 hover:border-primary-300 hover:text-primary-700 transition-colors"
+                    >
+                      {set.topic} <span className="text-gray-400">({(set.hashtags as string[]).length})</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Media */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="label mb-0">Media</label>
+            <button
+              type="button"
+              onClick={() => selectedClientId ? setShowMediaPicker(true) : toast.error('Select a client first')}
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors font-medium"
+            >
+              <Image size={12} /> Add from Library
+            </button>
+          </div>
+          {mediaUrls.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {mediaUrls.map(url => (
+                <div key={url} className="relative group w-20 h-20 rounded-xl overflow-hidden border border-gray-200">
+                  {url.match(/\.(mp4|mov|webm)$/i) ? (
+                    <div className="w-full h-full bg-gray-900 flex items-center justify-center text-gray-400 text-xs">Video</div>
+                  ) : (
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setMediaUrls(prev => prev.filter(u => u !== url))}
+                    className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 size={10} className="text-white" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setShowMediaPicker(true)}
+                className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:border-primary-300 hover:text-primary-500 transition-colors"
+              >
+                <Plus size={20} />
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">No media attached · click "Add from Library" to attach images or videos</p>
+          )}
         </div>
 
         {/* Schedule */}
@@ -359,6 +534,15 @@ export default function ContentComposer() {
           <Link to="/content" className="btn-secondary ml-auto">Cancel</Link>
         </div>
       </form>
+
+      {showMediaPicker && selectedClientId && (
+        <MediaPicker
+          clientId={selectedClientId}
+          selected={mediaUrls}
+          onConfirm={urls => setMediaUrls(urls)}
+          onClose={() => setShowMediaPicker(false)}
+        />
+      )}
     </div>
   );
 }

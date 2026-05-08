@@ -19,6 +19,9 @@ import analyticsRoutes from './routes/analytics.routes';
 import reportsRoutes from './routes/reports.routes';
 import clientPortalRoutes from './routes/client-portal.routes';
 import notificationsRoutes from './routes/notifications.routes';
+import mediaRoutes from './routes/media.routes';
+import hashtagsRoutes from './routes/hashtags.routes';
+import templatesRoutes from './routes/templates.routes';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -64,6 +67,9 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/client-portal', clientPortalRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/hashtags', hashtagsRoutes);
+app.use('/api/templates', templatesRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

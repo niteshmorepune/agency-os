@@ -112,6 +112,7 @@ model Client {
   hashtagSets      HashtagSet[]
   contentIdeas     ContentIdea[]
   aiUsage          AIUsageLog[]
+  mediaAssets      MediaAsset[]
 }
 
 enum ClientStatus {
@@ -391,6 +392,35 @@ enum ReportType {
   PLATFORM_SPECIFIC
   AUDIT_ONLY
   CUSTOM
+}
+
+// ─── Media & Templates ───────────────────────────────────────────────────────
+
+model MediaAsset {
+  id           String   @id @default(cuid())
+  agencyId     String
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  width        Int?
+  height       Int?
+  altText      String?
+  createdAt    DateTime @default(now())
+}
+
+model PostTemplate {
+  id        String    @id @default(cuid())
+  agencyId  String
+  name      String
+  platform  Platform?
+  caption   String
+  hashtags  String[]
+  category  String?
+  createdAt DateTime  @default(now())
 }
 
 model ActivityLog {
