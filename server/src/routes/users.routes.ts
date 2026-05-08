@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { authenticate, requireOwner } from '../middleware/auth.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
@@ -37,8 +38,19 @@ router.put('/:id', asyncHandler(async (req, res) => {
 
 router.delete('/:id', asyncHandler(async (req, res) => {
   if (req.params.id === req.user!.userId) { res.status(400).json({ error: 'Cannot delete yourself' }); return; }
-  await prisma.user.update({ where: { id: req.params.id, agencyId: req.user!.agencyId }, data: { isActive: false } });
-  res.json({ message: 'User deactivated' });
+  const target = await prisma.user.findFirst({ where: { id: req.params.id, agencyId: req.user!.agencyId } });
+  if (!target) { res.status(404).json({ error: 'User not found' }); return; }
+  if (target.role === 'OWNER') { res.status(400).json({ error: 'Cannot delete an Owner account' }); return; }
+  try {
+    await prisma.user.delete({ where: { id: req.params.id } });
+    res.json({ message: 'User deleted' });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
+      res.status(409).json({ error: 'This user has existing content. Deactivate them instead of deleting.' });
+      return;
+    }
+    throw err;
+  }
 }));
 
 export default router;

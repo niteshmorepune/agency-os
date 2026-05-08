@@ -257,6 +257,12 @@ function TeamTab() {
     onError: () => toast.error('Failed to update status'),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/users/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success('Member removed'); },
+    onError: (err: Error) => toast.error(err.message || 'Failed to remove member'),
+  });
+
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center justify-between">
@@ -344,12 +350,24 @@ function TeamTab() {
                   {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : 'Never'}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button
-                    onClick={() => toggleMutation.mutate({ id: u.id, isActive: u.isActive })}
-                    className={`text-xs font-medium ${u.isActive ? 'text-red-500 hover:text-red-700' : 'text-green-600 hover:text-green-800'}`}
-                  >
-                    {u.isActive ? 'Deactivate' : 'Reactivate'}
-                  </button>
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      onClick={() => toggleMutation.mutate({ id: u.id, isActive: u.isActive })}
+                      className={`text-xs font-medium ${u.isActive ? 'text-orange-500 hover:text-orange-700' : 'text-green-600 hover:text-green-800'}`}
+                    >
+                      {u.isActive ? 'Deactivate' : 'Reactivate'}
+                    </button>
+                    {u.role !== 'OWNER' && (
+                      <button
+                        onClick={() => { if (window.confirm(`Remove ${u.name} permanently? This cannot be undone.`)) deleteMutation.mutate(u.id); }}
+                        disabled={deleteMutation.isPending}
+                        className="text-gray-300 hover:text-red-500 transition-colors"
+                        title="Delete member"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
