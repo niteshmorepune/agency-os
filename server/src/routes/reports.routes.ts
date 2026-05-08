@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, requireRole } from '../middleware/auth.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { generateMonthlyReport, generateClientReport } from '../services/report.service';
+import { sendClientReport } from '../services/email.service';
+import { prisma } from '../lib/prisma';
+import { Role } from '@agencyos/shared';
 
 const router = Router();
 router.use(authenticate);
@@ -29,6 +32,49 @@ router.get('/client/:clientId', asyncHandler(async (req, res) => {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="client-report-${req.params.clientId}.pdf"`);
   res.send(pdf);
+}));
+
+// Email monthly report to a specific client's contact email
+router.post('/email/:clientId', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(async (req, res) => {
+  const client = await prisma.client.findFirst({
+    where: { id: req.params.clientId, agencyId: req.user!.agencyId },
+    select: { name: true, contactEmail: true, reportSchedule: true },
+  });
+  if (!client) { res.status(404).json({ error: 'Client not found' }); return; }
+  if (!client.contactEmail) { res.status(400).json({ error: 'Client has no contact email. Add one in Client Settings.' }); return; }
+
+  const now = new Date();
+  const pdf = await generateClientReport(req.params.clientId, req.user!);
+  const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const filename = `${client.name.replace(/\s+/g, '-')}-${monthLabel.replace(' ', '-')}-report.pdf`;
+
+  await sendClientReport({
+    agencyId: req.user!.agencyId,
+    clientName: client.name,
+    contactEmail: client.contactEmail,
+    pdfBuffer: Buffer.from(pdf),
+    filename,
+    monthLabel,
+  });
+
+  await prisma.client.update({
+    where: { id: req.params.clientId },
+    data: { lastReportEmailedAt: now },
+  });
+
+  res.json({ message: `Report emailed to ${client.contactEmail}` });
+}));
+
+// Update report schedule for a client
+router.patch('/schedule/:clientId', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(async (req, res) => {
+  const { reportSchedule } = z.object({ reportSchedule: z.enum(['NONE', 'MONTHLY']) }).parse(req.body);
+  const client = await prisma.client.findFirst({ where: { id: req.params.clientId, agencyId: req.user!.agencyId } });
+  if (!client) { res.status(404).json({ error: 'Client not found' }); return; }
+  const updated = await prisma.client.update({
+    where: { id: req.params.clientId },
+    data: { reportSchedule },
+  });
+  res.json({ data: updated });
 }));
 
 export default router;

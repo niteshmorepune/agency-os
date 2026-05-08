@@ -10,12 +10,12 @@ datasource db {
 
 // Agency & Branding
 model Agency {
-  id                 String   @id @default(cuid())
+  id                 String         @id @default(cuid())
   name               String
   logoUrl            String?
-  primaryColor       String   @default("#1a472a")
-  accentColor        String   @default("#c8522a")
-  fontFamily         String   @default("Inter")
+  primaryColor       String         @default("#1a472a")
+  accentColor        String         @default("#c8522a")
+  fontFamily         String         @default("Inter")
   reportFooter       String?
   reportTagline      String?
   faviconUrl         String?
@@ -30,11 +30,12 @@ model Agency {
   smtpHost           String?
   smtpUser           String?
   smtpPass           String?
-  aiMonthlyBudgetUsd Float    @default(20)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  aiMonthlyBudgetUsd Float          @default(20)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
   users              User[]
   clients            Client[]
+  digests            AgencyDigest[]
 }
 
 // Users
@@ -84,36 +85,38 @@ model RefreshToken {
 
 // Clients
 model Client {
-  id                 String                 @id @default(cuid())
-  agencyId           String
-  agency             Agency                 @relation(fields: [agencyId], references: [id])
-  name               String
-  domain             String
-  brandName          String?
-  industry           String?
-  targetAudience     String?
-  competitors        String[]
-  monthlyRetainer    Float?
-  contactName        String?
-  contactEmail       String?
-  notes              String?
-  status             ClientStatus           @default(ACTIVE)
-  aiMonthlyBudgetUsd Float?
-  onboardingComplete Boolean                @default(false)
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  assignments        ClientAssignment[]
-  auditProjects      AuditProject[]
-  platformScores     PlatformOptimization[]
-  personas           AudiencePersona[]
-  competitorData     CompetitorProfile[]
-  postDrafts         PostDraft[]
-  reports            GeneratedReport[]
-  hashtagSets        HashtagSet[]
-  contentIdeas       ContentIdea[]
-  aiUsage            AIUsageLog[]
-  mediaAssets        MediaAsset[]
-  invoices           Invoice[]
+  id                  String                 @id @default(cuid())
+  agencyId            String
+  agency              Agency                 @relation(fields: [agencyId], references: [id])
+  name                String
+  domain              String
+  brandName           String?
+  industry            String?
+  targetAudience      String?
+  competitors         String[]
+  monthlyRetainer     Float?
+  contactName         String?
+  contactEmail        String?
+  notes               String?
+  status              ClientStatus           @default(ACTIVE)
+  aiMonthlyBudgetUsd  Float?
+  onboardingComplete  Boolean                @default(false)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  assignments         ClientAssignment[]
+  auditProjects       AuditProject[]
+  platformScores      PlatformOptimization[]
+  personas            AudiencePersona[]
+  competitorData      CompetitorProfile[]
+  postDrafts          PostDraft[]
+  reports             GeneratedReport[]
+  hashtagSets         HashtagSet[]
+  contentIdeas        ContentIdea[]
+  aiUsage             AIUsageLog[]
+  mediaAssets         MediaAsset[]
+  invoices            Invoice[]
+  reportSchedule      ReportSchedule         @default(NONE)
+  lastReportEmailedAt DateTime?
 }
 
 enum ClientStatus {
@@ -393,6 +396,22 @@ enum ReportType {
   PLATFORM_SPECIFIC
   AUDIT_ONLY
   CUSTOM
+}
+
+// ─── Digest ──────────────────────────────────────────────────────────────────
+
+enum ReportSchedule {
+  NONE
+  MONTHLY
+}
+
+model AgencyDigest {
+  id        String   @id @default(cuid())
+  agencyId  String
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  weekLabel String
+  content   String
+  createdAt DateTime @default(now())
 }
 
 // ─── Invoices ─────────────────────────────────────────────────────────────────

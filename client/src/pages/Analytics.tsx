@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   Users, Zap, DollarSign, FileText, TrendingUp,
-  CheckCircle, Clock, BarChart2, Bot, ChevronRight, Download, RefreshCw,
+  CheckCircle, Clock, BarChart2, Bot, ChevronRight, Download, RefreshCw, Sparkles, Mail,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -119,10 +120,13 @@ function ScoreRing({ score, size = 64 }: { score: number; size?: number }) {
   );
 }
 
+interface Digest { id: string; content: string; weekLabel: string; createdAt: string }
+
 export default function Analytics() {
   const now = new Date();
   const monthName = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
   const [downloading, setDownloading] = useState(false);
+  const qc = useQueryClient();
 
   const downloadMonthlyReport = async () => {
     setDownloading(true);
@@ -145,6 +149,25 @@ export default function Analytics() {
     queryKey: ['analytics-summary'],
     queryFn: () => api.get<{ data: AnalyticsSummary }>('/analytics/summary'),
     staleTime: 60_000,
+  });
+
+  const { data: digestData, isLoading: digestLoading } = useQuery({
+    queryKey: ['digest-latest'],
+    queryFn: () => api.get<{ data: Digest | null }>('/digest/latest'),
+    staleTime: 300_000,
+  });
+  const digest = digestData?.data;
+
+  const generateMutation = useMutation({
+    mutationFn: () => api.post<{ data: Digest }>('/digest/generate', {}),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['digest-latest'] }); toast.success('Digest generated'); },
+    onError: () => toast.error('Failed to generate digest'),
+  });
+
+  const emailDigestMutation = useMutation({
+    mutationFn: () => api.post('/digest/email', {}),
+    onSuccess: () => toast.success('Digest emailed to you'),
+    onError: (e: Error) => toast.error(e.message || 'Failed to send email'),
   });
 
   const d = data?.data;
@@ -432,6 +455,56 @@ export default function Analytics() {
             <p className="text-2xl font-bold text-amber-700">${d.aiUsage.totalCost.toFixed(4)}</p>
             <p className="text-xs text-amber-600 mt-0.5">Cost this month</p>
           </div>
+        </div>
+      </div>
+
+      {/* AI Weekly Digest */}
+      <div className="card overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+            <Sparkles size={16} className="text-violet-600" />
+            AI Weekly Digest
+          </h2>
+          <div className="flex items-center gap-2">
+            {digest && (
+              <button
+                onClick={() => emailDigestMutation.mutate()}
+                disabled={emailDigestMutation.isPending}
+                className="btn-secondary text-xs flex items-center gap-1.5"
+              >
+                <Mail size={13} /> {emailDigestMutation.isPending ? 'Sending…' : 'Email to me'}
+              </button>
+            )}
+            <button
+              onClick={() => generateMutation.mutate()}
+              disabled={generateMutation.isPending}
+              className="btn-primary text-xs flex items-center gap-1.5"
+            >
+              {generateMutation.isPending
+                ? <><RefreshCw size={12} className="animate-spin" /> Generating…</>
+                : <><Sparkles size={12} /> {digest ? 'Regenerate' : 'Generate Digest'}</>}
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {digestLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map(i => <div key={i} className="h-4 bg-gray-100 rounded animate-pulse" />)}
+            </div>
+          ) : !digest ? (
+            <div className="text-center py-8">
+              <Sparkles size={32} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 font-medium text-sm">No digest generated yet</p>
+              <p className="text-gray-400 text-xs mt-1">Generate a weekly AI summary of your agency's performance</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs text-gray-400 mb-3">Generated {new Date(digest.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {digest.weekLabel}</p>
+              <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap bg-violet-50/40 rounded-xl p-4 border border-violet-100">
+                {digest.content}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

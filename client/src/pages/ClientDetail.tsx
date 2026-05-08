@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Edit2, Save, X, Globe, Mail, DollarSign,
   Users, BarChart2, Plus, Trash2, UserPlus, Building2, ClipboardList, TrendingUp,
-  CheckCircle2, Circle, PartyPopper,
+  CheckCircle2, Circle, PartyPopper, Send,
 } from 'lucide-react';
 import { api } from '../api/client';
 
@@ -32,6 +32,8 @@ interface ClientDetail {
   status: string;
   createdAt: string;
   onboardingComplete: boolean;
+  reportSchedule: 'NONE' | 'MONTHLY';
+  lastReportEmailedAt: string | null;
   assignments: AssignedUser[];
 }
 
@@ -524,7 +526,86 @@ function OnboardingChecklist({ client }: { client: ClientDetail }) {
   );
 }
 
-type Tab = 'overview' | 'platforms' | 'team';
+function ReportsTab({ client }: { client: ClientDetail }) {
+  const qc = useQueryClient();
+  const [schedule, setSchedule] = useState<'NONE' | 'MONTHLY'>(client.reportSchedule);
+  const [sending, setSending] = useState(false);
+
+  const scheduleMutation = useMutation({
+    mutationFn: () => api.patch(`/reports/schedule/${client.id}`, { reportSchedule: schedule }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['client', client.id] }); toast.success('Report schedule saved'); },
+    onError: () => toast.error('Failed to save schedule'),
+  });
+
+  async function sendNow() {
+    setSending(true);
+    try {
+      const res = await api.post<{ message: string }>(`/reports/email/${client.id}`, {});
+      qc.invalidateQueries({ queryKey: ['client', client.id] });
+      toast.success(res.message ?? 'Report sent');
+    } catch (e: unknown) {
+      toast.error((e as Error).message || 'Failed to send report');
+    }
+    setSending(false);
+  }
+
+  return (
+    <div className="space-y-5 max-w-lg">
+      <div className="card p-5 space-y-4">
+        <h3 className="font-semibold text-gray-800 text-sm">Report Schedule</h3>
+        <div className="space-y-1">
+          <label className="label">Auto-send frequency</label>
+          <select
+            className="input w-full"
+            value={schedule}
+            onChange={e => setSchedule(e.target.value as 'NONE' | 'MONTHLY')}
+          >
+            <option value="NONE">None (manual only)</option>
+            <option value="MONTHLY">Monthly (1st of each month)</option>
+          </select>
+          <p className="text-xs text-gray-400 mt-1">Monthly reports are sent automatically to the client's contact email on the 1st of each month.</p>
+        </div>
+        <button
+          onClick={() => scheduleMutation.mutate()}
+          disabled={scheduleMutation.isPending || schedule === client.reportSchedule}
+          className="btn-primary text-sm"
+        >
+          {scheduleMutation.isPending ? 'Saving…' : 'Save Schedule'}
+        </button>
+      </div>
+
+      <div className="card p-5 space-y-4">
+        <h3 className="font-semibold text-gray-800 text-sm">Send Report Now</h3>
+        {!client.contactEmail ? (
+          <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-100 rounded-lg p-3">
+            <span className="text-yellow-500 text-xs font-bold mt-0.5 flex-shrink-0">NOTE</span>
+            <p className="text-yellow-800 text-xs">No contact email set for this client. Add one in the Overview tab first.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">
+              Sends this month's PDF performance report to <strong>{client.contactEmail}</strong>.
+            </p>
+            {client.lastReportEmailedAt && (
+              <p className="text-xs text-gray-400">
+                Last sent: {new Date(client.lastReportEmailedAt).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
+            )}
+            <button
+              onClick={sendNow}
+              disabled={sending}
+              className="btn-secondary text-sm flex items-center gap-2"
+            >
+              <Send size={14} /> {sending ? 'Sending…' : 'Send Report Now'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+type Tab = 'overview' | 'platforms' | 'team' | 'reports';
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -558,6 +639,7 @@ export default function ClientDetail() {
     { id: 'overview', label: 'Overview', icon: <Building2 size={16} /> },
     { id: 'platforms', label: 'Platforms', icon: <BarChart2 size={16} /> },
     { id: 'team', label: 'Team', icon: <Users size={16} /> },
+    { id: 'reports', label: 'Reports', icon: <Send size={16} /> },
   ];
 
   return (
@@ -612,6 +694,7 @@ export default function ClientDetail() {
         {activeTab === 'overview' && <OverviewTab client={client} onSaved={() => qc.invalidateQueries({ queryKey: ['client', id] })} />}
         {activeTab === 'platforms' && <PlatformsTab clientId={client.id} />}
         {activeTab === 'team' && <TeamTab client={client} />}
+        {activeTab === 'reports' && <ReportsTab client={client} />}
       </div>
     </div>
   );

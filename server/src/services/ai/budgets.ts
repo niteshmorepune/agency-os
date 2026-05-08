@@ -17,6 +17,7 @@ export const TOKEN_BUDGETS: Record<string, number> = {
   hook: 400,
   script: 1200,
   post_ideas: 800,
+  digest: 1200,
 };
 
 export const CACHE_TTL: Record<string, number> = {
@@ -38,6 +39,7 @@ export const CACHE_TTL: Record<string, number> = {
   hook: 86400,
   script: 86400,
   post_ideas: 86400,
+  digest: 3600,
 };
 
 export const COST_PER_INPUT_TOKEN = 0.000003;   // claude-sonnet-4 pricing
