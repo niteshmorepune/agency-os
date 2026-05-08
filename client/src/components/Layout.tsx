@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutDashboard, Users, BarChart3, Zap, PenSquare, Settings, LogOut, Menu, X, ChevronRight, Bot } from 'lucide-react';
+import { LayoutDashboard, Users, BarChart3, Zap, PenSquare, Settings, LogOut, Menu, X, ChevronRight, Bot, BookOpen } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
 import { useUIStore } from '../store/ui.store';
@@ -18,10 +18,12 @@ const nav = [
   { label: 'Analytics', icon: BarChart3, href: '/analytics', roles: 'all' },
   { label: 'Optimize', icon: Zap, href: '/optimize', roles: 'all' },
   { label: 'Settings', icon: Settings, href: '/admin', roles: [Role.OWNER] },
+  { label: 'Help & Guide', icon: BookOpen, href: '/help', roles: 'all' },
 ];
 
 const CLIENT_NAV = [
   { label: 'My Dashboard', icon: LayoutDashboard, href: '/portal' },
+  { label: 'Help & Guide', icon: BookOpen, href: '/help' },
 ];
 
 export default function Layout({ children }: LayoutProps) {
