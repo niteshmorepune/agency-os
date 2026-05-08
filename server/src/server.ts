@@ -25,6 +25,7 @@ import templatesRoutes from './routes/templates.routes';
 import invoicesRoutes from './routes/invoices.routes';
 import activityRoutes from './routes/activity.routes';
 import digestRoutes from './routes/digest.routes';
+import webhooksRoutes from './routes/webhooks.routes';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -76,6 +77,7 @@ app.use('/api/templates', templatesRoutes);
 app.use('/api/invoices', invoicesRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/digest', digestRoutes);
+app.use('/api/webhooks', webhooksRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

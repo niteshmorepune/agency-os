@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
-import { Building2, Key, Users, Eye, EyeOff, Plus, Check, X, Pencil } from 'lucide-react';
+import { Building2, Key, Users, Eye, EyeOff, Plus, Check, X, Pencil, Webhook, Trash2, RefreshCw, Copy, FlaskConical } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Agency {
@@ -360,8 +360,259 @@ function TeamTab() {
   );
 }
 
+// ── Webhooks Tab ───────────────────────────────────────────────────────────────
+interface WebhookRow {
+  id: string;
+  name: string;
+  url: string;
+  events: string[];
+  secret: string;
+  isActive: boolean;
+  lastDeliveryAt: string | null;
+  lastStatus: number | null;
+}
+
+const ALL_EVENTS = [
+  { key: 'post.approved',  label: 'Post Approved' },
+  { key: 'post.rejected',  label: 'Post Rejected' },
+  { key: 'post.published', label: 'Post Published' },
+  { key: 'invoice.sent',   label: 'Invoice Sent' },
+  { key: 'invoice.paid',   label: 'Invoice Paid' },
+  { key: 'audit.completed',label: 'Audit Completed' },
+];
+
+const webhookFormSchema = z.object({
+  name: z.string().min(1, 'Name required'),
+  url:  z.string().url('Must be a valid HTTPS URL'),
+  events: z.array(z.string()).min(1, 'Select at least one event'),
+  isActive: z.boolean(),
+});
+type WebhookForm = z.infer<typeof webhookFormSchema>;
+
+function WebhooksTab() {
+  const qc = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [revealSecret, setRevealSecret] = useState<string | null>(null);
+  const [testingId, setTestingId] = useState<string | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['webhooks'],
+    queryFn: () => api.get<{ data: WebhookRow[] }>('/webhooks'),
+  });
+  const webhooks = data?.data ?? [];
+
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<WebhookForm>({
+    resolver: zodResolver(webhookFormSchema),
+    defaultValues: { name: '', url: '', events: [], isActive: true },
+  });
+  const selectedEvents = watch('events');
+
+  function toggleEvent(key: string) {
+    const current = watch('events');
+    setValue('events', current.includes(key) ? current.filter(e => e !== key) : [...current, key]);
+  }
+
+  function startEdit(w: WebhookRow) {
+    setEditId(w.id);
+    setShowForm(true);
+    reset({ name: w.name, url: w.url, events: w.events, isActive: w.isActive });
+  }
+
+  function cancelForm() {
+    setShowForm(false);
+    setEditId(null);
+    reset({ name: '', url: '', events: [], isActive: true });
+  }
+
+  const saveMutation = useMutation({
+    mutationFn: (data: WebhookForm) =>
+      editId
+        ? api.put(`/webhooks/${editId}`, data)
+        : api.post('/webhooks', data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['webhooks'] });
+      toast.success(editId ? 'Webhook updated' : 'Webhook created');
+      cancelForm();
+    },
+    onError: () => toast.error('Failed to save webhook'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/webhooks/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['webhooks'] }); toast.success('Webhook deleted'); },
+  });
+
+  const rotateMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/webhooks/${id}/rotate-secret`, {}),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['webhooks'] }); toast.success('Secret rotated'); },
+  });
+
+  async function testWebhook(id: string) {
+    setTestingId(id);
+    try {
+      await api.post(`/webhooks/${id}/test`, {});
+      toast.success('Test delivery sent');
+    } catch {
+      toast.error('Test delivery failed');
+    }
+    setTestingId(null);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-600">Receive HTTP POST notifications when events happen. Sign each request with HMAC-SHA256.</p>
+        </div>
+        {!showForm && (
+          <button onClick={() => setShowForm(true)} className="btn-primary text-sm flex items-center gap-2">
+            <Plus size={15} /> Add Webhook
+          </button>
+        )}
+      </div>
+
+      {/* Form */}
+      {showForm && (
+        <form onSubmit={handleSubmit(d => saveMutation.mutate(d))} className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
+          <h3 className="font-semibold text-gray-800 text-sm">{editId ? 'Edit Webhook' : 'New Webhook'}</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Name</label>
+              <input {...register('name')} className="input w-full" placeholder="e.g. Slack notifications" />
+              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+            </div>
+            <div>
+              <label className="label">Endpoint URL</label>
+              <input {...register('url')} className="input w-full" placeholder="https://example.com/webhook" />
+              {errors.url && <p className="text-red-500 text-xs mt-1">{errors.url.message}</p>}
+            </div>
+          </div>
+          <div>
+            <label className="label mb-2 block">Trigger Events</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {ALL_EVENTS.map(ev => (
+                <label key={ev.key} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedEvents.includes(ev.key)}
+                    onChange={() => toggleEvent(ev.key)}
+                    className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm text-gray-700">{ev.label}</span>
+                </label>
+              ))}
+            </div>
+            {errors.events && <p className="text-red-500 text-xs mt-1">{errors.events.message}</p>}
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="isActive" {...register('isActive')} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
+            <label htmlFor="isActive" className="text-sm text-gray-700">Active</label>
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" disabled={saveMutation.isPending} className="btn-primary text-sm">
+              {saveMutation.isPending ? 'Saving…' : editId ? 'Update' : 'Create'}
+            </button>
+            <button type="button" onClick={cancelForm} className="btn-secondary text-sm">Cancel</button>
+          </div>
+        </form>
+      )}
+
+      {/* Webhook list */}
+      {isLoading ? (
+        <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+      ) : webhooks.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">
+          <Webhook size={32} className="mx-auto mb-3 opacity-40" />
+          <p className="text-sm font-medium text-gray-500">No webhooks configured</p>
+          <p className="text-xs mt-1">Add a webhook to integrate with Zapier, Slack, or your own systems.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {webhooks.map(w => (
+            <div key={w.id} className="border border-gray-100 rounded-xl p-4 space-y-3 bg-white">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="font-semibold text-gray-800 text-sm">{w.name}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${w.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      {w.isActive ? 'Active' : 'Paused'}
+                    </span>
+                    {w.lastStatus !== null && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${w.lastStatus >= 200 && w.lastStatus < 300 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                        Last: {w.lastStatus === 0 ? 'timeout' : w.lastStatus}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 font-mono truncate">{w.url}</p>
+                  <div className="flex gap-1 flex-wrap mt-1.5">
+                    {w.events.map(ev => (
+                      <span key={ev} className="text-[10px] bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded font-medium">{ev}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => testWebhook(w.id)}
+                    disabled={testingId === w.id}
+                    title="Send test"
+                    className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
+                  >
+                    {testingId === w.id ? <RefreshCw size={13} className="animate-spin" /> : <FlaskConical size={13} />}
+                  </button>
+                  <button onClick={() => startEdit(w)} title="Edit" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    onClick={() => { if (confirm('Delete this webhook?')) deleteMutation.mutate(w.id); }}
+                    className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Secret row */}
+              <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                <span className="text-xs text-gray-400 font-medium flex-shrink-0">Secret</span>
+                <span className="text-xs font-mono text-gray-700 flex-1 truncate">
+                  {revealSecret === w.id ? w.secret : '••••••••••••••••••••••••'}
+                </span>
+                <button onClick={() => setRevealSecret(revealSecret === w.id ? null : w.id)} className="text-gray-400 hover:text-gray-600">
+                  {revealSecret === w.id ? <EyeOff size={12} /> : <Eye size={12} />}
+                </button>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(w.secret); toast.success('Secret copied'); }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <Copy size={12} />
+                </button>
+                <button
+                  onClick={() => { if (confirm('Rotate secret? Update your endpoint to use the new value.')) rotateMutation.mutate(w.id); }}
+                  title="Rotate secret"
+                  className="text-gray-400 hover:text-amber-600"
+                >
+                  <RefreshCw size={12} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Verification docs */}
+      <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-xs text-gray-500 space-y-1">
+        <p className="font-semibold text-gray-700 text-sm mb-2">Verifying signatures</p>
+        <p>Each request includes <code className="bg-gray-200 px-1 rounded">X-Agency-Signature: sha256=&lt;hex&gt;</code></p>
+        <p>Compute: <code className="bg-gray-200 px-1 rounded">HMAC-SHA256(secret, "{"{timestamp}"}.{"{body}"}")</code></p>
+        <p>Also sent: <code className="bg-gray-200 px-1 rounded">X-Agency-Timestamp</code> and <code className="bg-gray-200 px-1 rounded">X-Agency-Event</code></p>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
-type Tab = 'branding' | 'api-keys' | 'team';
+type Tab = 'branding' | 'api-keys' | 'team' | 'webhooks';
 
 export default function Settings() {
   const user = useAuthStore(s => s.user);
@@ -394,12 +645,14 @@ export default function Settings() {
         <TabButton active={tab === 'branding'} onClick={() => setTab('branding')} icon={Building2} label="Branding" />
         <TabButton active={tab === 'api-keys'} onClick={() => setTab('api-keys')} icon={Key} label="API Keys" />
         <TabButton active={tab === 'team'} onClick={() => setTab('team')} icon={Users} label="Team" />
+        <TabButton active={tab === 'webhooks'} onClick={() => setTab('webhooks')} icon={Webhook} label="Webhooks" />
       </div>
 
       <div className="card p-6">
         {tab === 'branding'  && (isOwner ? <BrandingTab agency={agency} /> : <p className="text-gray-500">Owner access required.</p>)}
         {tab === 'api-keys'  && (isOwner ? <ApiKeysTab agency={agency} /> : <p className="text-gray-500">Owner access required.</p>)}
         {tab === 'team'      && <TeamTab />}
+        {tab === 'webhooks'  && (isOwner ? <WebhooksTab /> : <p className="text-gray-500">Owner access required.</p>)}
       </div>
     </div>
   );

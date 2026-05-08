@@ -36,6 +36,7 @@ model Agency {
   users              User[]
   clients            Client[]
   digests            AgencyDigest[]
+  webhooks           Webhook[]
 }
 
 // Users
@@ -396,6 +397,23 @@ enum ReportType {
   PLATFORM_SPECIFIC
   AUDIT_ONLY
   CUSTOM
+}
+
+// ─── Webhooks ────────────────────────────────────────────────────────────────
+
+model Webhook {
+  id             String    @id @default(cuid())
+  agencyId       String
+  agency         Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  name           String
+  url            String
+  events         String[]
+  secret         String
+  isActive       Boolean   @default(true)
+  lastDeliveryAt DateTime?
+  lastStatus     Int?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 // ─── Digest ──────────────────────────────────────────────────────────────────

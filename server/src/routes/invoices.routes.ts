@@ -5,6 +5,7 @@ import { authenticate, requireRole } from '../middleware/auth.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
 import { logActivity } from '../lib/activity';
+import { deliverWebhook } from '../services/webhook.service';
 import { Role } from '@agencyos/shared';
 
 const router = Router();
@@ -284,6 +285,7 @@ router.post('/:id/send', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHan
     resourceId: invoice.id,
     metadata: { invoiceNumber: invoice.invoiceNumber, total: invoice.total },
   });
+  void deliverWebhook({ agencyId: req.user!.agencyId, event: 'invoice.sent', payload: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, total: invoice.total, clientId: invoice.clientId } });
   res.json({ data: updated });
 }));
 
@@ -301,6 +303,7 @@ router.post('/:id/paid', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHan
     resourceId: invoice.id,
     metadata: { invoiceNumber: invoice.invoiceNumber, total: invoice.total },
   });
+  void deliverWebhook({ agencyId: req.user!.agencyId, event: 'invoice.paid', payload: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, total: invoice.total, clientId: invoice.clientId } });
   res.json({ data: updated });
 }));
 

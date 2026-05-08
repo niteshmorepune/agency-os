@@ -9,6 +9,7 @@ import { Role } from '@agencyos/shared';
 import NotificationBell from './NotificationBell';
 
 interface LayoutProps { children: ReactNode }
+interface AgencyBranding { name: string; logoUrl: string | null; primaryColor: string }
 
 const nav = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', roles: 'all' },
@@ -40,6 +41,14 @@ export default function Layout({ children }: LayoutProps) {
     enabled: !user,
   });
 
+  const { data: brandingData } = useQuery({
+    queryKey: ['agency-branding'],
+    queryFn: () => api.get<{ data: AgencyBranding }>('/agency'),
+    staleTime: 300_000,
+    enabled: !!user,
+  });
+  const branding = brandingData?.data;
+
   useEffect(() => {
     if (meData?.data) setUser(meData.data as never);
   }, [meData, setUser]);
@@ -69,10 +78,14 @@ export default function Layout({ children }: LayoutProps) {
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-30 lg:relative lg:inset-auto lg:z-auto flex-shrink-0 bg-white border-r border-gray-200 flex flex-col transition-all duration-200 ${sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'}`}>
         <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
-          <div className="w-8 h-8 rounded-lg bg-primary-800 flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-sm">A</span>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden"
+            style={{ backgroundColor: branding?.primaryColor ?? '#1a472a' }}>
+            {branding?.logoUrl
+              ? <img src={branding.logoUrl} alt="" className="w-full h-full object-cover" />
+              : <span className="text-white font-bold text-sm">{(branding?.name ?? 'A')[0].toUpperCase()}</span>
+            }
           </div>
-          <span className="font-semibold text-gray-900 truncate">{isClient ? 'My Portal' : 'Agency OS'}</span>
+          <span className="font-semibold text-gray-900 truncate">{branding?.name ?? (isClient ? 'My Portal' : 'Agency OS')}</span>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">

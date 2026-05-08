@@ -5,6 +5,7 @@ import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
 import { createNotification } from '../lib/notify';
 import { logActivity } from '../lib/activity';
+import { deliverWebhook } from '../services/webhook.service';
 import { Role } from '@agencyos/shared';
 import DOMPurify from 'isomorphic-dompurify';
 
@@ -115,6 +116,7 @@ router.post('/:id/approve', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), async
     resourceId: post.id,
     metadata: { caption: post.caption.slice(0, 80) },
   });
+  void deliverWebhook({ agencyId: req.user!.agencyId, event: 'post.approved', payload: { postId: post.id, clientId: post.clientId, platforms: post.platforms } });
   res.json({ data: updated });
 }));
 
@@ -140,6 +142,17 @@ router.post('/:id/reject', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncH
     resourceId: post.id,
     metadata: { caption: post.caption.slice(0, 80) },
   });
+  void deliverWebhook({ agencyId: req.user!.agencyId, event: 'post.rejected', payload: { postId: post.id, clientId: post.clientId } });
+  res.json({ data: updated });
+}));
+
+// Publish post (mark as PUBLISHED)
+router.post('/:id/publish', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(async (req, res) => {
+  const post = await prisma.postDraft.findFirst({ where: { id: req.params.id, client: { agencyId: req.user!.agencyId } } });
+  if (!post) { res.status(404).json({ error: 'Post not found' }); return; }
+  if (post.approvalStatus !== 'APPROVED') { res.status(400).json({ error: 'Post must be approved before publishing' }); return; }
+  const updated = await prisma.postDraft.update({ where: { id: req.params.id }, data: { status: 'PUBLISHED' } });
+  void deliverWebhook({ agencyId: req.user!.agencyId, event: 'post.published', payload: { postId: post.id, clientId: post.clientId, platforms: post.platforms } });
   res.json({ data: updated });
 }));
 
