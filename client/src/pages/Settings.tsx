@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
 import { Building2, Key, Users, Eye, EyeOff, Plus, Check, X, Pencil } from 'lucide-react';
@@ -58,7 +59,8 @@ function BrandingTab({ agency }: { agency: Agency }) {
 
   const mutation = useMutation({
     mutationFn: (data: BrandingForm) => api.put('/agency/branding', data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['agency'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['agency'] }); toast.success('Branding saved'); },
+    onError: () => toast.error('Failed to save branding'),
   });
 
   return (
@@ -160,7 +162,8 @@ function ApiKeysTab({ agency }: { agency: Agency }) {
         api.put('/agency/budget', { aiMonthlyBudgetUsd }),
       ]);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['agency'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['agency'] }); toast.success('API keys saved'); },
+    onError: () => toast.error('Failed to save API keys'),
   });
 
   const isSet = (v: string) => v === '••••••••';
@@ -238,17 +241,20 @@ function TeamTab() {
 
   const inviteMutation = useMutation({
     mutationFn: (d: InviteForm) => api.post('/users', d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); reset(); setShowForm(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); reset(); setShowForm(false); toast.success('Team member invited'); },
+    onError: () => toast.error('Failed to invite team member'),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, role }: { id: string; role: string }) => api.put(`/users/${id}`, { role }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); setEditingId(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); setEditingId(null); toast.success('Role updated'); },
+    onError: () => toast.error('Failed to update role'),
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => api.put(`/users/${id}`, { isActive: !isActive }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+    onError: () => toast.error('Failed to update status'),
   });
 
   return (

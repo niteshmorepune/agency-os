@@ -60,6 +60,7 @@ model User {
   aiUsage           AIUsageLog[]
   refreshTokens     RefreshToken[]
   approvedPosts     PostDraft[]    @relation("PostApprovals")
+  notifications     Notification[]
 }
 
 enum Role {
@@ -402,4 +403,24 @@ model ActivityLog {
   resourceId   String
   metadata     Json?
   createdAt    DateTime @default(now())
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  agencyId  String
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  link      String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+}
+
+enum NotificationType {
+  POST_APPROVED
+  POST_REJECTED
+  AUDIT_COMPLETED
+  GENERAL
 }

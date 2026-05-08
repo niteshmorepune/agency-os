@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { api } from '../api/client';
 
@@ -43,8 +44,10 @@ export default function ClientNew() {
     },
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['clients'] });
+      toast.success('Client created');
       navigate(`/clients/${res.data.id}`);
     },
+    onError: () => toast.error('Failed to create client'),
   });
 
   function addCompetitor() {

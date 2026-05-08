@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { Toaster } from 'sonner';
 import { api } from './api/client';
 import { useAuthStore } from './store/auth.store';
 import Layout from './components/Layout';
@@ -70,6 +71,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AppInit />
+      <Toaster position="top-right" richColors closeButton />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<RootRedirect />} />

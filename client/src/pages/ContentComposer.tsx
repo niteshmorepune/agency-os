@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import { ArrowLeft, Sparkles, X, RefreshCw, CheckCircle, XCircle, Hash } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
@@ -103,22 +104,26 @@ export default function ContentComposer() {
 
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => api.post<{ data: PostDraft }>('/posts', payload),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['posts'] }); navigate('/content'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['posts'] }); toast.success('Post saved'); navigate('/content'); },
+    onError: () => toast.error('Failed to save post'),
   });
 
   const updateMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => api.put<{ data: PostDraft }>(`/posts/${postId}`, payload),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['posts'] }); navigate('/content'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['posts'] }); toast.success('Post updated'); navigate('/content'); },
+    onError: () => toast.error('Failed to update post'),
   });
 
   const approveMutation = useMutation({
     mutationFn: () => api.post(`/posts/${postId}/approve`, {}),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['post', postId] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['post', postId] }); toast.success('Post approved'); },
+    onError: () => toast.error('Failed to approve post'),
   });
 
   const rejectMutation = useMutation({
     mutationFn: () => api.post(`/posts/${postId}/reject`, {}),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['post', postId] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['post', postId] }); toast.success('Post sent back for revision'); },
+    onError: () => toast.error('Failed to reject post'),
   });
 
   const onSubmit = (values: FormValues, asDraft = true) => {

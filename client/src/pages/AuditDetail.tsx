@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   ArrowLeft, Download, CheckCircle2, AlertTriangle, XCircle,
   Clock, Minus, Sparkles, ChevronDown, ChevronUp, MessageSquare, Flag,
@@ -183,6 +184,7 @@ function CheckRow({ check, clientId, auditId }: { check: AuditCheckRow; clientId
   const updateMutation = useMutation({
     mutationFn: (status: string) => api.put(`/audit/${clientId}/${auditId}/check/${check.id}`, { status }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['audit', clientId, auditId] }),
+    onError: () => toast.error('Failed to update check'),
   });
 
   async function getAISuggestion() {
@@ -353,7 +355,11 @@ export default function AuditDetail() {
 
   const completeMutation = useMutation({
     mutationFn: () => api.put(`/audit/${clientId}/${auditId}/complete`, {}),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['audit', clientId, auditId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['audit', clientId, auditId] });
+      toast.success('Audit marked complete');
+    },
+    onError: () => toast.error('Failed to complete audit'),
   });
 
   const noteMutation = useMutation({

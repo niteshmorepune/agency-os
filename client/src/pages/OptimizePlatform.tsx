@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   ArrowLeft, CheckCircle2, AlertTriangle, XCircle, Clock, Minus,
   Sparkles, ChevronDown, ChevronUp, Flag,
@@ -100,6 +101,7 @@ function CheckRow({
     mutationFn: (data: Record<string, unknown>) =>
       api.put(`/optimization/${clientId}/${platform}/check/${check.checkId}`, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['optimization-platform', clientId, platform] }),
+    onError: () => toast.error('Failed to save check'),
   });
 
   async function getAI() {

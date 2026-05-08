@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { ArrowLeft, Lightbulb, Sparkles, RefreshCw, Save, Trash2, PenSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import { api } from '../api/client';
 import { SafeAIOutput } from '../lib/safeAI';
@@ -127,6 +128,7 @@ function SaveIdeaForm({ clients, onSaved }: { clients: ClientBasic[]; onSaved: (
       qc.invalidateQueries({ queryKey: ['ideas'] });
       setForm({ clientId: '', platform: 'LINKEDIN', title: '', format: 'Post', hook: '', outline: '' });
       setOpen(false);
+      toast.success('Idea saved');
       onSaved();
     } catch { /* handled below */ } finally {
       setSaving(false);
@@ -228,7 +230,8 @@ export default function ContentIdeas() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/ideas/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['ideas'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['ideas'] }); toast.success('Idea deleted'); },
+    onError: () => toast.error('Failed to delete idea'),
   });
 
   const markUsedMutation = useMutation({

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
+import { createNotification } from '../lib/notify';
 import { Role } from '@agencyos/shared';
 import DOMPurify from 'isomorphic-dompurify';
 
@@ -95,6 +96,16 @@ router.post('/:id/approve', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), async
   const post = await prisma.postDraft.findFirst({ where: { id: req.params.id, client: { agencyId: req.user!.agencyId } } });
   if (!post) { res.status(404).json({ error: 'Post not found' }); return; }
   const updated = await prisma.postDraft.update({ where: { id: req.params.id }, data: { approvalStatus: 'APPROVED', approvedById: req.user!.userId } });
+  if (post.createdById !== req.user!.userId) {
+    await createNotification({
+      agencyId: req.user!.agencyId,
+      userId: post.createdById,
+      type: 'POST_APPROVED',
+      title: 'Post approved',
+      body: `Your post has been approved and is ready to publish.`,
+      link: `/content/${post.id}/edit`,
+    });
+  }
   res.json({ data: updated });
 }));
 
@@ -102,6 +113,16 @@ router.post('/:id/reject', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncH
   const post = await prisma.postDraft.findFirst({ where: { id: req.params.id, client: { agencyId: req.user!.agencyId } } });
   if (!post) { res.status(404).json({ error: 'Post not found' }); return; }
   const updated = await prisma.postDraft.update({ where: { id: req.params.id }, data: { approvalStatus: 'REJECTED' } });
+  if (post.createdById !== req.user!.userId) {
+    await createNotification({
+      agencyId: req.user!.agencyId,
+      userId: post.createdById,
+      type: 'POST_REJECTED',
+      title: 'Post needs revision',
+      body: `Your post has been sent back for revision.`,
+      link: `/content/${post.id}/edit`,
+    });
+  }
   res.json({ data: updated });
 }));
 

@@ -116,7 +116,27 @@ export async function completeAudit(clientId: string, auditId: string, user: Jwt
   });
   if (!audit) throw Object.assign(new Error('Audit not found'), { statusCode: 404 });
   await recalculateScore(auditId);
-  return prisma.auditProject.update({ where: { id: auditId }, data: { status: 'COMPLETED' } });
+  const completed = await prisma.auditProject.update({ where: { id: auditId }, data: { status: 'COMPLETED' } });
+
+  const { createNotification } = await import('../lib/notify');
+  const assignments = await prisma.clientAssignment.findMany({
+    where: { clientId },
+    select: { userId: true },
+  });
+  await Promise.all(
+    assignments
+      .filter(a => a.userId !== user.userId)
+      .map(a => createNotification({
+        agencyId: user.agencyId,
+        userId: a.userId,
+        type: 'AUDIT_COMPLETED',
+        title: 'Audit completed',
+        body: `"${audit.name}" is complete with a score of ${completed.overallScore ?? 0}.`,
+        link: `/audit/${clientId}/${auditId}`,
+      }))
+  );
+
+  return completed;
 }
 
 export async function getAISuggestion(

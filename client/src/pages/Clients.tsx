@@ -12,7 +12,15 @@ interface Client {
   status: string;
   monthlyRetainer?: number;
   contactEmail?: string;
+  avgScore: number | null;
+  health: 'green' | 'yellow' | 'red';
 }
+
+const HEALTH_META = {
+  green:  { dot: 'bg-green-500',  label: 'Healthy',        text: 'text-green-700',  bg: 'bg-green-50'  },
+  yellow: { dot: 'bg-yellow-400', label: 'Needs attention', text: 'text-yellow-700', bg: 'bg-yellow-50' },
+  red:    { dot: 'bg-red-500',    label: 'At risk',         text: 'text-red-700',    bg: 'bg-red-50'    },
+};
 
 export default function Clients() {
   const [search, setSearch] = useState('');
@@ -71,9 +79,17 @@ export default function Clients() {
                 <div className="w-11 h-11 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0">
                   <span className="text-primary-700 font-bold text-lg">{client.name[0]}</span>
                 </div>
-                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${client.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : client.status === 'PAUSED' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
-                  {client.status}
-                </span>
+                <div className="flex items-center gap-2">
+                  {client.health && (
+                    <span className={`flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-medium ${HEALTH_META[client.health].bg} ${HEALTH_META[client.health].text}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${HEALTH_META[client.health].dot}`} />
+                      {client.avgScore !== null ? `${client.avgScore}` : HEALTH_META[client.health].label}
+                    </span>
+                  )}
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${client.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : client.status === 'PAUSED' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
+                    {client.status}
+                  </span>
+                </div>
               </div>
               <h3 className="font-semibold text-gray-900 group-hover:text-primary-700 transition-colors">{client.name}</h3>
               <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">

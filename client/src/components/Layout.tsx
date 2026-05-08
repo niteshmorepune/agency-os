@@ -6,6 +6,7 @@ import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
 import { useUIStore } from '../store/ui.store';
 import { Role } from '@agencyos/shared';
+import NotificationBell from './NotificationBell';
 
 interface LayoutProps { children: ReactNode }
 
@@ -56,8 +57,13 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-20 bg-black/30 lg:hidden" onClick={toggleSidebar} />
+      )}
+
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'} flex-shrink-0 bg-white border-r border-gray-200 flex flex-col transition-all duration-200`}>
+      <aside className={`fixed inset-y-0 left-0 z-30 lg:relative lg:inset-auto lg:z-auto flex-shrink-0 bg-white border-r border-gray-200 flex flex-col transition-all duration-200 ${sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'}`}>
         <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
           <div className="w-8 h-8 rounded-lg bg-primary-800 flex items-center justify-center flex-shrink-0">
             <span className="text-white font-bold text-sm">A</span>
@@ -106,14 +112,15 @@ export default function Layout({ children }: LayoutProps) {
           <button onClick={toggleSidebar} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
             {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
-          <div className="flex items-center gap-1 text-sm text-gray-500">
+          <div className="flex items-center gap-1 text-sm text-gray-500 flex-1 min-w-0">
             {location.pathname.split('/').filter(Boolean).map((segment, i, arr) => (
-              <span key={i} className="flex items-center gap-1">
-                {i > 0 && <ChevronRight size={14} />}
-                <span className={i === arr.length - 1 ? 'text-gray-900 font-medium' : 'capitalize'}>{segment}</span>
+              <span key={i} className="flex items-center gap-1 min-w-0">
+                {i > 0 && <ChevronRight size={14} className="flex-shrink-0" />}
+                <span className={`truncate ${i === arr.length - 1 ? 'text-gray-900 font-medium' : 'capitalize hidden sm:inline'}`}>{segment}</span>
               </span>
             ))}
           </div>
+          {!isClient && <NotificationBell />}
         </header>
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>

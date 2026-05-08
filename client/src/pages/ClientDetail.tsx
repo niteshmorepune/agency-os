@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import {
   ArrowLeft, Edit2, Save, X, Globe, Mail, DollarSign,
   Users, BarChart2, Plus, Trash2, UserPlus, Building2, ClipboardList, TrendingUp,
@@ -142,7 +143,9 @@ function OverviewTab({ client, onSaved }: { client: ClientDetail; onSaved: () =>
       qc.invalidateQueries({ queryKey: ['client', client.id] });
       setEditing(false);
       onSaved();
+      toast.success('Client updated');
     },
+    onError: () => toast.error('Failed to save changes'),
   });
 
   function cancelEdit() {
@@ -386,12 +389,18 @@ function TeamTab({ client }: { client: ClientDetail }) {
       qc.invalidateQueries({ queryKey: ['client', client.id] });
       setSelectedUserId('');
       setShowAssign(false);
+      toast.success('Team member assigned');
     },
+    onError: () => toast.error('Failed to assign team member'),
   });
 
   const removeMutation = useMutation({
     mutationFn: (userId: string) => api.delete(`/clients/${client.id}/assign`, { userId }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['client', client.id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['client', client.id] });
+      toast.success('Member removed');
+    },
+    onError: () => toast.error('Failed to remove member'),
   });
 
   return (

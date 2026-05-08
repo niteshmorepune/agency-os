@@ -11,6 +11,14 @@ function clientWhereForUser(user: JwtPayload) {
   return { agencyId: user.agencyId };
 }
 
+function computeHealth(status: string, avgScore: number | null): 'green' | 'yellow' | 'red' {
+  if (status !== 'ACTIVE') return 'red';
+  if (avgScore === null) return 'yellow';
+  if (avgScore >= 70) return 'green';
+  if (avgScore >= 40) return 'yellow';
+  return 'red';
+}
+
 export async function listClients(user: JwtPayload, page = 1, limit = 20) {
   const where = clientWhereForUser(user);
   const [clients, total] = await Promise.all([
@@ -23,7 +31,24 @@ export async function listClients(user: JwtPayload, page = 1, limit = 20) {
     }),
     prisma.client.count({ where }),
   ]);
-  return { clients, total, page, limit, totalPages: Math.ceil(total / limit) };
+
+  const clientIds = clients.map(c => c.id);
+  const platformGroups = await prisma.platformOptimization.groupBy({
+    by: ['clientId'],
+    where: { clientId: { in: clientIds } },
+    _avg: { score: true },
+  });
+  const scoreMap: Record<string, number> = {};
+  for (const g of platformGroups) {
+    if (g._avg.score !== null) scoreMap[g.clientId] = Math.round(g._avg.score);
+  }
+
+  const enriched = clients.map(c => {
+    const avgScore = scoreMap[c.id] ?? null;
+    return { ...c, avgScore, health: computeHealth(c.status, avgScore) };
+  });
+
+  return { clients: enriched, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
 export async function getClient(id: string, user: JwtPayload) {
