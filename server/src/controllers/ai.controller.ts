@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { runAITool } from '../services/ai/client';
 import { prisma } from '../lib/prisma';
+import { getPostingSchedule } from '../services/postingTimes';
+import { getBenchmark, calculateEngagementRate, getRating, getPercentile } from '../services/engagementBenchmarks';
 
 const SYSTEM_BASE = `You are an expert digital marketing strategist for a premium agency. You have deep expertise in all major social platforms, SEO, paid ads, email marketing, and content strategy. Always output structured, actionable content. Never use filler phrases. Be specific and platform-aware.`;
 
@@ -221,6 +223,85 @@ export async function postIdeasGenerator(req: Request, res: Response): Promise<v
     forceRefresh,
   });
   res.json({ data: result, cached });
+}
+
+export async function postingTimeOptimizer(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    platforms: z.array(z.string()).min(1),
+    location: z.enum(['IN', 'GLOBAL', 'UK', 'US', 'UAE', 'AU']).default('IN'),
+    postsPerWeek: z.number().min(1).max(14).default(3),
+    workingHours: z.enum(['9-6', '8-8', 'flexible']).default('9-6'),
+    customAdvice: z.boolean().optional(),
+    industry: z.string().optional(),
+    clientId: z.string().optional(),
+  });
+  const { platforms, location, postsPerWeek, customAdvice, industry, clientId } = schema.parse(req.body);
+
+  const schedule = getPostingSchedule({ platforms, location, postsPerWeek });
+
+  if (customAdvice && industry) {
+    const ctx = await getClientCtx(clientId, req.user!.agencyId);
+    const { result, cached } = await runAITool({
+      toolId: 'posting_time',
+      systemPrompt: SYSTEM_BASE,
+      userPrompt: `Provide custom posting time advice for a ${industry} brand targeting ${location} audience.\nPlatforms: ${platforms.join(', ')}\nPosts per week: ${postsPerWeek}\n\nGive 3 specific, industry-aware tips for each platform about timing, frequency, and content rhythm.`,
+      inputs: { platforms: platforms.join(','), location, postsPerWeek: String(postsPerWeek), industry: industry ?? '' },
+      user: req.user!,
+      clientId,
+      clientContext: ctx,
+    });
+    res.json({ data: { schedule, customAdvice: result, cached } });
+    return;
+  }
+
+  res.json({ data: { schedule, cached: false } });
+}
+
+export async function engagementAnalyzer(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    platform: z.string().min(1),
+    followers: z.number().min(1),
+    avgLikes: z.number().min(0),
+    avgComments: z.number().min(0),
+    avgShares: z.number().min(0),
+    avgReach: z.number().optional(),
+    industry: z.string().optional(),
+    clientId: z.string().optional(),
+    forceRefresh: z.boolean().optional(),
+  });
+  const { platform, followers, avgLikes, avgComments, avgShares, avgReach, industry, clientId, forceRefresh } = schema.parse(req.body);
+
+  const engRate = calculateEngagementRate({ followers, avgLikes, avgComments, avgShares, avgReach });
+  const benchmark = getBenchmark(platform, followers);
+  const rating = getRating(engRate, benchmark);
+  const percentile = getPercentile(engRate, platform, followers);
+
+  const result: Record<string, unknown> = {
+    engagementRate: Math.round(engRate * 100) / 100,
+    benchmark,
+    rating,
+    percentile,
+    formula: avgReach ? '(likes + comments + shares) / reach × 100' : '(likes + comments + shares) / followers × 100',
+  };
+
+  if (rating !== 'good' && rating !== 'excellent') {
+    const ctx = await getClientCtx(clientId, req.user!.agencyId);
+    const ratingLabel = rating.replace('_', ' ');
+    const { result: aiResult, cached } = await runAITool({
+      toolId: 'engagement',
+      systemPrompt: SYSTEM_BASE,
+      userPrompt: `Client: ${ctx?.brandName ?? 'Agency client'}, Platform: ${platform}\nFollowers: ${followers}, Engagement rate: ${engRate.toFixed(2)}%\nBenchmark for this tier: ${benchmark.good}% = good, ${benchmark.avg}% = average\nIndustry: ${industry ?? ctx?.industry ?? 'general'}\n\nThey are ${ratingLabel}. Give 5 specific, actionable recommendations to improve engagement rate on ${platform}.\nBe platform-specific. No generic advice. Max 80 words per recommendation.\nReturn as JSON array: [{"recommendation": "...", "impact": "high/med/low", "effort": "high/med/low"}]`,
+      inputs: { platform, followers: String(followers), engRate: String(engRate.toFixed(2)), rating, industry: industry ?? '' },
+      user: req.user!,
+      clientId,
+      clientContext: ctx,
+      forceRefresh,
+    });
+    result.recommendations = aiResult;
+    result.cached = cached;
+  }
+
+  res.json({ data: result });
 }
 
 export async function getAIUsage(req: Request, res: Response): Promise<void> {

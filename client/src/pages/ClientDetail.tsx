@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -8,8 +8,9 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Edit2, Save, X, Globe, Mail, DollarSign,
   Users, BarChart2, Plus, Trash2, UserPlus, Building2, ClipboardList, TrendingUp,
-  CheckCircle2, Circle, PartyPopper, Send,
+  CheckCircle2, Circle, PartyPopper, Send, MessageSquare, Calendar, AlertCircle, Link2,
 } from 'lucide-react';
+import { useAuthStore } from '../store/auth.store';
 import { api } from '../api/client';
 
 interface AssignedUser {
@@ -51,6 +52,25 @@ interface AgencyUser {
   email: string;
   role: string;
   avatarUrl?: string;
+}
+
+interface ActionItem {
+  id: string;
+  title: string;
+  description?: string;
+  dueDate?: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+}
+
+interface ClientMessage {
+  id: string;
+  senderId: string;
+  senderRole: string;
+  senderName: string;
+  body: string;
+  isRead: boolean;
+  createdAt: string;
 }
 
 const editSchema = z.object({
@@ -526,10 +546,241 @@ function OnboardingChecklist({ client }: { client: ClientDetail }) {
   );
 }
 
+function ActionItemsTab({ clientId }: { clientId: string }) {
+  const { user } = useAuthStore();
+  const qc = useQueryClient();
+  const isManager = user?.role === 'OWNER' || user?.role === 'ACCOUNT_MANAGER';
+  const [showForm, setShowForm] = useState(false);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['action-items', clientId],
+    queryFn: () => api.get<{ data: ActionItem[] }>(`/clients/${clientId}/action-items`),
+    staleTime: 30_000,
+  });
+  const items = data?.data ?? [];
+
+  const createItem = async () => {
+    if (!title.trim()) { toast.error('Title is required'); return; }
+    setCreating(true);
+    try {
+      await api.post(`/clients/${clientId}/action-items`, {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        dueDate: dueDate || undefined,
+      });
+      qc.invalidateQueries({ queryKey: ['action-items', clientId] });
+      setTitle(''); setDescription(''); setDueDate('');
+      setShowForm(false);
+      toast.success('Action item created');
+    } catch {
+      toast.error('Failed to create action item');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const updateStatus = async (itemId: string, status: string) => {
+    try {
+      await api.put(`/clients/action-items/${itemId}`, { status });
+      qc.invalidateQueries({ queryKey: ['action-items', clientId] });
+    } catch {
+      toast.error('Failed to update status');
+    }
+  };
+
+  const deleteItem = async (itemId: string) => {
+    try {
+      await api.delete(`/clients/action-items/${itemId}`);
+      qc.invalidateQueries({ queryKey: ['action-items', clientId] });
+      toast.success('Deleted');
+    } catch {
+      toast.error('Failed to delete');
+    }
+  };
+
+  const STATUS_COLORS: Record<string, string> = {
+    PENDING: 'bg-yellow-100 text-yellow-700',
+    IN_PROGRESS: 'bg-blue-100 text-blue-700',
+    COMPLETED: 'bg-green-100 text-green-700',
+    CANCELLED: 'bg-gray-100 text-gray-500',
+  };
+
+  return (
+    <div className="space-y-4 max-w-2xl">
+      {isManager && (
+        <div className="flex justify-end">
+          <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm flex items-center gap-2">
+            <Plus size={15} /> New Action Item
+          </button>
+        </div>
+      )}
+
+      {showForm && (
+        <div className="card p-4 space-y-3 border-2 border-primary-100">
+          <h4 className="font-semibold text-sm text-gray-700">New Action Item</h4>
+          <input
+            className="input"
+            placeholder="Title (required)"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+          />
+          <textarea
+            className="input resize-none"
+            rows={2}
+            placeholder="Description (optional)"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+          <div>
+            <label className="label">Due date (optional)</label>
+            <input type="date" className="input" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={createItem} disabled={creating} className="btn-primary text-sm">{creating ? 'Creating…' : 'Create'}</button>
+            <button onClick={() => { setShowForm(false); setTitle(''); setDescription(''); setDueDate(''); }} className="btn-secondary text-sm">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+      ) : items.length === 0 ? (
+        <div className="card p-10 text-center">
+          <CheckCircle2 size={36} className="mx-auto text-gray-300 mb-3" />
+          <p className="text-gray-500 text-sm">No action items yet.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.map(item => {
+            const isOverdue = !!(item.dueDate && item.status !== 'COMPLETED' && item.status !== 'CANCELLED' && new Date(item.dueDate) < new Date());
+            return (
+              <div key={item.id} className={`card p-4 flex items-start gap-3 ${isOverdue ? 'border-l-4 border-red-400' : ''}`}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className={`font-medium text-sm ${item.status === 'COMPLETED' ? 'line-through text-gray-400' : 'text-gray-800'}`}>{item.title}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 font-medium ${STATUS_COLORS[item.status]}`}>{item.status.replace('_', ' ')}</span>
+                  </div>
+                  {item.description && <p className="text-xs text-gray-500 mt-0.5">{item.description}</p>}
+                  {item.dueDate && (
+                    <span className={`flex items-center gap-1 text-xs mt-1.5 ${isOverdue ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+                      <Calendar size={11} />
+                      {new Date(item.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {isOverdue && ' · Overdue'}
+                    </span>
+                  )}
+                </div>
+                {isManager && (
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {item.status === 'PENDING' && (
+                      <button onClick={() => updateStatus(item.id, 'IN_PROGRESS')} className="text-xs px-2 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium">Start</button>
+                    )}
+                    {item.status === 'IN_PROGRESS' && (
+                      <button onClick={() => updateStatus(item.id, 'COMPLETED')} className="text-xs px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 font-medium">Done</button>
+                    )}
+                    <button onClick={() => deleteItem(item.id)} className="text-gray-400 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MessagesTab({ clientId }: { clientId: string }) {
+  const { user } = useAuthStore();
+  const qc = useQueryClient();
+  const [body, setBody] = useState('');
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const { data } = useQuery({
+    queryKey: ['client-messages', clientId],
+    queryFn: () => api.get<{ data: ClientMessage[] }>(`/clients/${clientId}/messages`),
+    refetchInterval: 30_000,
+    staleTime: 20_000,
+  });
+  const messages = data?.data ?? [];
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages.length]);
+
+  useEffect(() => {
+    api.put(`/clients/${clientId}/messages/read`, {}).catch(() => {});
+  }, [clientId]);
+
+  const send = async () => {
+    if (!body.trim()) return;
+    setSending(true);
+    try {
+      await api.post(`/clients/${clientId}/messages`, { body: body.trim() });
+      setBody('');
+      qc.invalidateQueries({ queryKey: ['client-messages', clientId] });
+    } catch {
+      toast.error('Failed to send message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl space-y-3">
+      <div className="card p-0 overflow-hidden">
+        <div className="h-96 overflow-y-auto p-4 space-y-3 bg-gray-50">
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-300">
+              <MessageSquare size={32} className="mb-2" />
+              <p className="text-sm">No messages yet. Start the conversation.</p>
+            </div>
+          ) : (
+            messages.map(msg => {
+              const isOurs = msg.senderId === user?.id;
+              return (
+                <div key={msg.id} className={`flex ${isOurs ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${isOurs ? 'bg-primary-800 text-white rounded-br-sm' : 'bg-white text-gray-800 shadow-sm rounded-bl-sm'}`}>
+                    {!isOurs && <p className="text-xs font-semibold mb-0.5 text-gray-400">{msg.senderName}</p>}
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.body}</p>
+                    <p className={`text-[10px] mt-1 ${isOurs ? 'text-primary-200' : 'text-gray-400'}`}>
+                      {new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              );
+            })
+          )}
+          <div ref={bottomRef} />
+        </div>
+        <div className="border-t border-gray-200 p-3 bg-white flex gap-2">
+          <textarea
+            className="input flex-1 resize-none text-sm"
+            rows={2}
+            placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+          />
+          <button onClick={send} disabled={sending || !body.trim()} className="btn-primary px-3 self-end flex items-center gap-1.5 text-sm">
+            <Send size={14} /> {sending ? '…' : 'Send'}
+          </button>
+        </div>
+      </div>
+      <p className="text-xs text-gray-400 text-center">Messages refresh every 30 s · Client receives email on new message</p>
+    </div>
+  );
+}
+
 function ReportsTab({ client }: { client: ClientDetail }) {
   const qc = useQueryClient();
   const [schedule, setSchedule] = useState<'NONE' | 'MONTHLY'>(client.reportSchedule);
   const [sending, setSending] = useState(false);
+  const [sendingLink, setSendingLink] = useState(false);
 
   const scheduleMutation = useMutation({
     mutationFn: () => api.patch(`/reports/schedule/${client.id}`, { reportSchedule: schedule }),
@@ -549,8 +800,35 @@ function ReportsTab({ client }: { client: ClientDetail }) {
     setSending(false);
   }
 
+  async function sendOnboardingLink() {
+    setSendingLink(true);
+    try {
+      await api.post(`/clients/${client.id}/onboarding/send-link`, {});
+      toast.success('Onboarding link sent to ' + (client.contactEmail ?? 'client'));
+    } catch (e: unknown) {
+      toast.error((e as Error).message || 'Failed to send link');
+    } finally {
+      setSendingLink(false);
+    }
+  }
+
   return (
     <div className="space-y-5 max-w-lg">
+      <div className="card p-5 space-y-4">
+        <h3 className="font-semibold text-gray-800 text-sm">Client Onboarding Link</h3>
+        <p className="text-sm text-gray-600">Send a branded onboarding questionnaire to the client. They fill in their business goals, social handles, brand voice, and more — no login required.</p>
+        {!client.contactEmail ? (
+          <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-100 rounded-lg p-3">
+            <AlertCircle size={14} className="text-yellow-500 flex-shrink-0 mt-0.5" />
+            <p className="text-yellow-800 text-xs">No contact email set. Add one in the Overview tab first.</p>
+          </div>
+        ) : (
+          <button onClick={sendOnboardingLink} disabled={sendingLink} className="btn-secondary text-sm flex items-center gap-2">
+            <Link2 size={14} /> {sendingLink ? 'Sending…' : 'Send Onboarding Link'}
+          </button>
+        )}
+      </div>
+
       <div className="card p-5 space-y-4">
         <h3 className="font-semibold text-gray-800 text-sm">Report Schedule</h3>
         <div className="space-y-1">
@@ -605,7 +883,7 @@ function ReportsTab({ client }: { client: ClientDetail }) {
   );
 }
 
-type Tab = 'overview' | 'platforms' | 'team' | 'reports';
+type Tab = 'overview' | 'platforms' | 'team' | 'reports' | 'action-items' | 'messages';
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -639,6 +917,8 @@ export default function ClientDetail() {
     { id: 'overview', label: 'Overview', icon: <Building2 size={16} /> },
     { id: 'platforms', label: 'Platforms', icon: <BarChart2 size={16} /> },
     { id: 'team', label: 'Team', icon: <Users size={16} /> },
+    { id: 'action-items', label: 'Action Items', icon: <CheckCircle2 size={16} /> },
+    { id: 'messages', label: 'Messages', icon: <MessageSquare size={16} /> },
     { id: 'reports', label: 'Reports', icon: <Send size={16} /> },
   ];
 
@@ -694,6 +974,8 @@ export default function ClientDetail() {
         {activeTab === 'overview' && <OverviewTab client={client} onSaved={() => qc.invalidateQueries({ queryKey: ['client', id] })} />}
         {activeTab === 'platforms' && <PlatformsTab clientId={client.id} />}
         {activeTab === 'team' && <TeamTab client={client} />}
+        {activeTab === 'action-items' && <ActionItemsTab clientId={client.id} />}
+        {activeTab === 'messages' && <MessagesTab clientId={client.id} />}
         {activeTab === 'reports' && <ReportsTab client={client} />}
       </div>
     </div>

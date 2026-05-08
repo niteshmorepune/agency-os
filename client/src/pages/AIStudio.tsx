@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Bot, Sparkles, Copy, RefreshCw, Check, BarChart2, ChevronLeft, Database, Users } from 'lucide-react';
+import { Bot, Sparkles, Copy, RefreshCw, Check, BarChart2, ChevronLeft, Database, Users, Clock, TrendingUp } from 'lucide-react';
 import { api } from '../api/client';
 import { SafeAIOutput } from '../lib/safeAI';
 
@@ -23,6 +23,7 @@ interface Tool {
   endpoint: string;
   numberFields?: string[];
   arrayFields?: string[];
+  customPage?: string;
 }
 
 interface ClientBasic {
@@ -195,14 +196,37 @@ const TOOLS: Tool[] = [
     ],
     numberFields: ['starRating'],
   },
+  {
+    id: 'posting-times',
+    category: 'Research',
+    name: 'Posting Time Optimizer',
+    description: 'Evidence-based optimal posting schedule per platform and audience location',
+    endpoint: '/ai/posting-times',
+    fields: [],
+    customPage: '/ai-studio/posting-times',
+  },
+  {
+    id: 'engagement',
+    category: 'Research',
+    name: 'Engagement Rate Analyzer',
+    description: 'Calculate engagement rate, benchmark against industry, get AI improvement tips',
+    endpoint: '/ai/engagement-analyze',
+    fields: [],
+    customPage: '/ai-studio/engagement',
+  },
 ];
+
+const TOOL_ICON: Record<string, React.ReactNode> = {
+  'posting-times': <Clock size={18} className="text-primary-700" />,
+  'engagement': <TrendingUp size={18} className="text-primary-700" />,
+};
 
 function ToolCard({ tool, onClick }: { tool: Tool; onClick: () => void }) {
   return (
     <button onClick={onClick} className="card p-5 text-left hover:shadow-md hover:border-primary-200 transition-all group w-full">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0 group-hover:bg-primary-100 transition-colors">
-          <Sparkles size={18} className="text-primary-700" />
+          {TOOL_ICON[tool.id] ?? <Sparkles size={18} className="text-primary-700" />}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
@@ -448,7 +472,7 @@ export default function AIStudio() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(tool => (
-          <ToolCard key={tool.id} tool={tool} onClick={() => navigate(`/ai-studio/${tool.id}`)} />
+          <ToolCard key={tool.id} tool={tool} onClick={() => navigate(tool.customPage ?? `/ai-studio/${tool.id}`)} />
         ))}
       </div>
     </div>

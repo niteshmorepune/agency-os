@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { Platform } from '@agencyos/shared';
 import * as optService from '../services/optimization.service';
+import { getPlatformRewrites, CHAR_LIMITS } from '../services/ai/platformRewrite';
 
 const router = Router();
 router.use(authenticate);
@@ -59,6 +60,34 @@ router.post('/:clientId/:platform/ai-suggest-all', asyncHandler(async (req, res)
   const platform = req.params.platform.toUpperCase() as Platform;
   const result = await optService.bulkAISuggestions(req.params.clientId, platform, req.user!);
   res.json({ data: result });
+}));
+
+router.post('/:clientId/ai-rewrite', asyncHandler(async (req, res) => {
+  const schema = z.object({
+    platform: z.string().min(1),
+    checkId: z.string().min(1),
+    currentValue: z.string().default(''),
+  });
+  const { platform, checkId, currentValue } = schema.parse(req.body);
+
+  const client = await prisma.client.findFirst({
+    where: { id: req.params.clientId, agencyId: req.user!.agencyId },
+    select: { brandName: true, name: true, industry: true },
+  });
+  if (!client) { res.status(404).json({ error: 'Client not found' }); return; }
+
+  const result = await getPlatformRewrites({
+    platform,
+    checkId,
+    currentValue,
+    brandName: client.brandName ?? client.name,
+    industry: client.industry ?? 'Digital Marketing',
+    user: req.user!,
+    clientId: req.params.clientId,
+  });
+
+  const charLimit = CHAR_LIMITS[checkId] ?? 0;
+  res.json({ data: { variants: result, charLimit } });
 }));
 
 export default router;

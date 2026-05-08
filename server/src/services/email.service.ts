@@ -86,3 +86,104 @@ export async function sendDigestEmail(params: {
     `,
   });
 }
+
+export async function sendMessageEmail(params: {
+  agencyId: string;
+  clientId: string;
+  senderRole: string;
+  body: string;
+}) {
+  const { agencyId, clientId, senderRole, body } = params;
+  let transport: ReturnType<typeof nodemailer.createTransport>;
+  let fromEmail: string;
+  let agencyName: string;
+  try {
+    ({ transport, fromEmail, agencyName } = await getTransport(agencyId));
+  } catch {
+    return;
+  }
+
+  if (senderRole === 'CLIENT') {
+    const assignment = await prisma.clientAssignment.findFirst({
+      where: { clientId, client: { agencyId } },
+      include: { user: { select: { email: true, name: true } } },
+    });
+    if (!assignment?.user?.email) return;
+    await transport.sendMail({
+      from: `"${agencyName}" <${fromEmail}>`,
+      to: assignment.user.email,
+      subject: `New message from client`,
+      html: `<p>Your client sent a new message:</p><blockquote style="border-left:3px solid #e5e7eb;padding-left:12px;color:#374151">${body.replace(/\n/g, '<br>')}</blockquote><p><a href="${process.env.APP_URL ?? ''}/clients/${clientId}">View conversation →</a></p>`,
+    });
+  } else {
+    const client = await prisma.client.findFirst({ where: { id: clientId, agencyId }, select: { contactEmail: true, name: true } });
+    if (!client?.contactEmail) return;
+    await transport.sendMail({
+      from: `"${agencyName}" <${fromEmail}>`,
+      to: client.contactEmail,
+      subject: `New message from ${agencyName}`,
+      html: `<p>You have a new message from your account team:</p><blockquote style="border-left:3px solid #e5e7eb;padding-left:12px;color:#374151">${body.replace(/\n/g, '<br>')}</blockquote><p>Log in to your portal to reply.</p>`,
+    });
+  }
+}
+
+export async function sendActionItemEmail(params: {
+  agencyId: string;
+  clientEmail: string;
+  clientName: string;
+  title: string;
+  description?: string;
+  dueDate?: Date;
+}) {
+  let transport: ReturnType<typeof nodemailer.createTransport>;
+  let fromEmail: string;
+  let agencyName: string;
+  try {
+    ({ transport, fromEmail, agencyName } = await getTransport(params.agencyId));
+  } catch {
+    return;
+  }
+  await transport.sendMail({
+    from: `"${agencyName}" <${fromEmail}>`,
+    to: params.clientEmail,
+    subject: `Action Required: ${params.title}`,
+    html: `<p>Hi ${params.clientName},</p><p>Your account team has created an action item for you:</p><h3>${params.title}</h3>${params.description ? `<p>${params.description}</p>` : ''}${params.dueDate ? `<p><strong>Due:</strong> ${params.dueDate.toLocaleDateString()}</p>` : ''}<p>Log in to your portal to view and complete it.</p>`,
+  });
+}
+
+export async function sendOnboardingEmail(params: {
+  agencyId: string;
+  clientName: string;
+  contactEmail: string;
+  token: string;
+}) {
+  let transport: ReturnType<typeof nodemailer.createTransport>;
+  let fromEmail: string;
+  let agencyName: string;
+  try {
+    ({ transport, fromEmail, agencyName } = await getTransport(params.agencyId));
+  } catch {
+    return;
+  }
+  const url = `${process.env.APP_URL ?? 'https://nedsdrishti.in'}/onboarding/${params.token}`;
+  await transport.sendMail({
+    from: `"${agencyName}" <${fromEmail}>`,
+    to: params.contactEmail,
+    subject: `Welcome to ${agencyName} — Complete your onboarding`,
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#111827">
+        <div style="background:#1a472a;padding:28px 32px;border-radius:12px 12px 0 0">
+          <h1 style="color:#fff;margin:0;font-size:20px">${agencyName}</h1>
+        </div>
+        <div style="background:#fff;padding:28px 32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px">
+          <p>Hi ${params.clientName} team,</p>
+          <p>To get started, please complete your onboarding questionnaire. It takes about 5 minutes and helps us set up your account correctly.</p>
+          <p style="text-align:center;margin:28px 0">
+            <a href="${url}" style="background:#1a472a;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600">Complete Onboarding →</a>
+          </p>
+          <p style="color:#6b7280;font-size:13px">This link expires in 7 days. If you have any questions, reply to this email.</p>
+        </div>
+      </div>
+    `,
+  });
+}

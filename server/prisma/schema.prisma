@@ -86,38 +86,46 @@ model RefreshToken {
 
 // Clients
 model Client {
-  id                  String                 @id @default(cuid())
-  agencyId            String
-  agency              Agency                 @relation(fields: [agencyId], references: [id])
-  name                String
-  domain              String
-  brandName           String?
-  industry            String?
-  targetAudience      String?
-  competitors         String[]
-  monthlyRetainer     Float?
-  contactName         String?
-  contactEmail        String?
-  notes               String?
-  status              ClientStatus           @default(ACTIVE)
-  aiMonthlyBudgetUsd  Float?
-  onboardingComplete  Boolean                @default(false)
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
-  assignments         ClientAssignment[]
-  auditProjects       AuditProject[]
-  platformScores      PlatformOptimization[]
-  personas            AudiencePersona[]
-  competitorData      CompetitorProfile[]
-  postDrafts          PostDraft[]
-  reports             GeneratedReport[]
-  hashtagSets         HashtagSet[]
-  contentIdeas        ContentIdea[]
-  aiUsage             AIUsageLog[]
-  mediaAssets         MediaAsset[]
-  invoices            Invoice[]
-  reportSchedule      ReportSchedule         @default(NONE)
-  lastReportEmailedAt DateTime?
+  id                    String                 @id @default(cuid())
+  agencyId              String
+  agency                Agency                 @relation(fields: [agencyId], references: [id])
+  name                  String
+  domain                String
+  brandName             String?
+  industry              String?
+  targetAudience        String?
+  competitors           String[]
+  monthlyRetainer       Float?
+  contactName           String?
+  contactEmail          String?
+  notes                 String?
+  status                ClientStatus           @default(ACTIVE)
+  aiMonthlyBudgetUsd    Float?
+  onboardingComplete    Boolean                @default(false)
+  onboardingData        Json?
+  onboardingCompletedAt DateTime?
+  brandTone             String?
+  wordsToAvoid          String?
+  primaryLocation       String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  assignments           ClientAssignment[]
+  auditProjects         AuditProject[]
+  platformScores        PlatformOptimization[]
+  personas              AudiencePersona[]
+  competitorData        CompetitorProfile[]
+  postDrafts            PostDraft[]
+  reports               GeneratedReport[]
+  hashtagSets           HashtagSet[]
+  contentIdeas          ContentIdea[]
+  aiUsage               AIUsageLog[]
+  mediaAssets           MediaAsset[]
+  invoices              Invoice[]
+  reportSchedule        ReportSchedule         @default(NONE)
+  lastReportEmailedAt   DateTime?
+  actionItems           ClientActionItem[]
+  messages              ClientMessage[]
+  onboardingToken       OnboardingToken?
 }
 
 enum ClientStatus {
@@ -521,4 +529,56 @@ enum NotificationType {
   POST_REJECTED
   AUDIT_COMPLETED
   GENERAL
+}
+
+// ─── Client Action Items ──────────────────────────────────────────────────────
+
+model ClientActionItem {
+  id            String           @id @default(cuid())
+  agencyId      String
+  clientId      String
+  client        Client           @relation(fields: [clientId], references: [id])
+  title         String
+  description   String?
+  dueDate       DateTime?
+  status        ActionItemStatus @default(PENDING)
+  createdById   String
+  completedAt   DateTime?
+  completedNote String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+enum ActionItemStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ─── In-App Messaging ─────────────────────────────────────────────────────────
+
+model ClientMessage {
+  id         String   @id @default(cuid())
+  agencyId   String
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id])
+  senderId   String
+  senderRole String
+  senderName String
+  body       String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+// ─── Onboarding Token ─────────────────────────────────────────────────────────
+
+model OnboardingToken {
+  id        String    @id @default(cuid())
+  clientId  String    @unique
+  client    Client    @relation(fields: [clientId], references: [id])
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }

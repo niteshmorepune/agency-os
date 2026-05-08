@@ -31,6 +31,9 @@ import InvoiceView from './pages/InvoiceView';
 import ActivityFeed from './pages/ActivityFeed';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
+import PostingTimeOptimizer from './pages/PostingTimeOptimizer';
+import EngagementAnalyzer from './pages/EngagementAnalyzer';
+import OnboardingForm from './pages/OnboardingForm';
 
 const Spinner = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -88,7 +91,10 @@ export default function App() {
         <Route path="/clients/:id" element={<ProtectedRoute><ClientDetail /></ProtectedRoute>} />
         <Route path="/ai-studio" element={<ProtectedRoute><AIStudio /></ProtectedRoute>} />
         <Route path="/ai-studio/usage" element={<ProtectedRoute><AIUsage /></ProtectedRoute>} />
+        <Route path="/ai-studio/posting-times" element={<ProtectedRoute><PostingTimeOptimizer /></ProtectedRoute>} />
+        <Route path="/ai-studio/engagement" element={<ProtectedRoute><EngagementAnalyzer /></ProtectedRoute>} />
         <Route path="/ai-studio/:toolId" element={<ProtectedRoute><AIStudio /></ProtectedRoute>} />
+        <Route path="/onboarding/:token" element={<OnboardingForm />} />
         <Route path="/audit/:clientId" element={<ProtectedRoute><AuditList /></ProtectedRoute>} />
         <Route path="/audit/:clientId/:auditId" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
         <Route path="/optimize" element={<ProtectedRoute><OptimizeHome /></ProtectedRoute>} />
