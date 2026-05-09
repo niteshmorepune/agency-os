@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
-import { Building2, Key, Users, Eye, EyeOff, Plus, Check, X, Pencil, Webhook, Trash2, RefreshCw, Copy, FlaskConical } from 'lucide-react';
+import { Building2, Key, Users, Eye, EyeOff, Plus, Check, X, Pencil, Webhook, Trash2, RefreshCw, Copy, FlaskConical, UserCircle } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Agency {
@@ -64,7 +64,7 @@ function BrandingTab({ agency }: { agency: Agency }) {
   });
 
   return (
-    <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-6 max-w-2xl">
+    <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-6">
       <div>
         <label className="label">Agency Name</label>
         <input {...register('name')} className="input" />
@@ -169,7 +169,7 @@ function ApiKeysTab({ agency }: { agency: Agency }) {
   const isSet = (v: string) => v === '••••••••';
 
   return (
-    <form onSubmit={handleSubmit(d => keysMutation.mutate(d))} className="space-y-8 max-w-2xl">
+    <form onSubmit={handleSubmit(d => keysMutation.mutate(d))} className="space-y-8">
       <div className="space-y-4">
         <h3 className="font-semibold text-gray-800 flex items-center gap-2"><Key size={16} /> AI Integration</h3>
         <MaskedInput name="anthropicKey" label={`Anthropic API Key ${isSet(agency.apiKeys.anthropicKey) ? '✓ Configured' : '— Not set'}`} hint="Required for all AI features" register={register} />
@@ -264,7 +264,7 @@ function TeamTab() {
   });
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-gray-500 text-sm">{users.length} team member{users.length !== 1 ? 's' : ''}</p>
         <button onClick={() => setShowForm(s => !s)} className="btn-primary text-sm">
@@ -629,8 +629,107 @@ function WebhooksTab() {
   );
 }
 
+// ── My Profile Tab ─────────────────────────────────────────────────────────────
+const profileSchema = z.object({
+  name: z.string().min(1, 'Name required'),
+  email: z.string().email('Valid email required'),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().optional(),
+  confirmPassword: z.string().optional(),
+}).superRefine((d, ctx) => {
+  if (d.newPassword) {
+    if (d.newPassword.length < 8) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Min 8 characters', path: ['newPassword'] });
+    if (!d.currentPassword) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Current password required', path: ['currentPassword'] });
+    if (d.newPassword !== d.confirmPassword) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Passwords do not match', path: ['confirmPassword'] });
+  }
+});
+type ProfileForm = z.infer<typeof profileSchema>;
+
+function ProfileTab() {
+  const user = useAuthStore(s => s.user);
+  const setUser = useAuthStore(s => s.setUser);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+
+  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<ProfileForm>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: { name: user?.name ?? '', email: user?.email ?? '', currentPassword: '', newPassword: '', confirmPassword: '' },
+  });
+
+  const mutation = useMutation({
+    mutationFn: (data: ProfileForm) => api.put<{ data: { id: string; email: string; name: string; role: never } }>('/profile', {
+      name: data.name,
+      email: data.email,
+      ...(data.newPassword ? { currentPassword: data.currentPassword, newPassword: data.newPassword } : {}),
+    }),
+    onSuccess: (res) => {
+      setUser({ ...user!, name: res.data.name, email: res.data.email });
+      reset({ name: res.data.name, email: res.data.email, currentPassword: '', newPassword: '', confirmPassword: '' });
+      toast.success('Profile updated');
+    },
+    onError: (err: Error) => toast.error(err.message || 'Failed to update profile'),
+  });
+
+  return (
+    <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-8">
+      <div className="space-y-4">
+        <h3 className="font-semibold text-gray-800">Account Info</h3>
+        <div>
+          <label className="label">Full Name</label>
+          <input {...register('name')} className="input" />
+          {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>}
+        </div>
+        <div>
+          <label className="label">Email Address</label>
+          <input {...register('email')} type="email" className="input" />
+          {errors.email && <p className="text-red-600 text-xs mt-1">{errors.email.message}</p>}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="font-semibold text-gray-800">Change Password</h3>
+        <p className="text-xs text-gray-400">Leave blank to keep your current password.</p>
+        <div>
+          <label className="label">Current Password</label>
+          <div className="relative">
+            <input {...register('currentPassword')} type={showCurrent ? 'text' : 'password'} className="input pr-10" placeholder="••••••••" />
+            <button type="button" onClick={() => setShowCurrent(v => !v)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">
+              {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+          {errors.currentPassword && <p className="text-red-600 text-xs mt-1">{errors.currentPassword.message}</p>}
+        </div>
+        <div>
+          <label className="label">New Password</label>
+          <div className="relative">
+            <input {...register('newPassword')} type={showNew ? 'text' : 'password'} className="input pr-10" placeholder="Min 8 characters" />
+            <button type="button" onClick={() => setShowNew(v => !v)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">
+              {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+          {errors.newPassword && <p className="text-red-600 text-xs mt-1">{errors.newPassword.message}</p>}
+        </div>
+        <div>
+          <label className="label">Confirm New Password</label>
+          <input {...register('confirmPassword')} type="password" className="input" placeholder="••••••••" />
+          {errors.confirmPassword && <p className="text-red-600 text-xs mt-1">{errors.confirmPassword.message}</p>}
+        </div>
+      </div>
+
+      {mutation.isError && <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">{(mutation.error as Error).message}</div>}
+
+      <div className="flex items-center gap-3">
+        <button type="submit" disabled={!isDirty || mutation.isPending} className="btn-primary">
+          {mutation.isPending ? 'Saving...' : 'Save Profile'}
+        </button>
+        {mutation.isSuccess && <span className="flex items-center gap-1 text-green-600 text-sm"><Check size={16} /> Saved</span>}
+      </div>
+    </form>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
-type Tab = 'branding' | 'api-keys' | 'team' | 'webhooks';
+type Tab = 'branding' | 'api-keys' | 'team' | 'webhooks' | 'profile';
 
 export default function Settings() {
   const user = useAuthStore(s => s.user);
@@ -664,6 +763,7 @@ export default function Settings() {
         <TabButton active={tab === 'api-keys'} onClick={() => setTab('api-keys')} icon={Key} label="API Keys" />
         <TabButton active={tab === 'team'} onClick={() => setTab('team')} icon={Users} label="Team" />
         <TabButton active={tab === 'webhooks'} onClick={() => setTab('webhooks')} icon={Webhook} label="Webhooks" />
+        <TabButton active={tab === 'profile'} onClick={() => setTab('profile')} icon={UserCircle} label="My Profile" />
       </div>
 
       <div className="card p-6">
@@ -671,6 +771,7 @@ export default function Settings() {
         {tab === 'api-keys'  && (isOwner ? <ApiKeysTab agency={agency} /> : <p className="text-gray-500">Owner access required.</p>)}
         {tab === 'team'      && <TeamTab />}
         {tab === 'webhooks'  && (isOwner ? <WebhooksTab /> : <p className="text-gray-500">Owner access required.</p>)}
+        {tab === 'profile'   && <ProfileTab />}
       </div>
     </div>
   );

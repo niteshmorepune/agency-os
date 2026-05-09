@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Eye, EyeOff } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
 
@@ -17,6 +18,7 @@ export default function Login() {
   const navigate = useNavigate();
   const setUser = useAuthStore(s => s.setUser);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -50,7 +52,12 @@ export default function Login() {
             </div>
             <div>
               <label className="label">Password</label>
-              <input {...register('password')} type="password" className="input" placeholder="••••••••" autoComplete="current-password" />
+              <div className="relative">
+                <input {...register('password')} type={showPassword ? 'text' : 'password'} className="input pr-10" placeholder="••••••••" autoComplete="current-password" />
+                <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               {errors.password && <p className="text-red-600 text-xs mt-1">{errors.password.message}</p>}
             </div>
             {error && (

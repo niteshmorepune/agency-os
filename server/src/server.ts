@@ -28,6 +28,7 @@ import digestRoutes from './routes/digest.routes';
 import webhooksRoutes from './routes/webhooks.routes';
 import onboardingRoutes from './routes/onboarding.routes';
 import helpRoutes from './routes/help.routes';
+import profileRoutes from './routes/profile.routes';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -82,6 +83,7 @@ app.use('/api/digest', digestRoutes);
 app.use('/api/webhooks', webhooksRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/help', helpRoutes);
+app.use('/api/profile', profileRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
