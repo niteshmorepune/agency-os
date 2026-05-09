@@ -145,6 +145,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
     <li><span class="step-num">2</span><span class="step-text">Enter your email and password</span></li>
     <li><span class="step-num">3</span><span class="step-text">Click <strong>Sign In</strong> — you'll land on your Dashboard</span></li>
   </ol>
+  <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">Use the eye icon next to the password field to show or hide what you are typing.</span></div>
   <div class="note"><span class="note-label">NOTE</span><span class="note-text">If you forget your password, ask your Agency Owner to reset it from Settings → Team.</span></div>
 </div>
 
@@ -738,18 +739,18 @@ const GUIDE_HTML = `<!DOCTYPE html>
 <div class="article">
   <div class="article-title">Updating your name or email</div>
   <ol class="steps">
-    <li><span class="step-num">1</span><span class="step-text">Click your name at the bottom of the sidebar — opens the Profile page</span></li>
-    <li><span class="step-num">2</span><span class="step-text">Under Personal Details, edit your Full Name and/or Email Address</span></li>
-    <li><span class="step-num">3</span><span class="step-text">Click <strong>Save Changes</strong></span></li>
+    <li><span class="step-num">1</span><span class="step-text">Go to <strong>Settings → My Profile</strong> tab, or click your name at the bottom of the sidebar</span></li>
+    <li><span class="step-num">2</span><span class="step-text">Under Account Info, edit your Full Name and/or Email Address</span></li>
+    <li><span class="step-num">3</span><span class="step-text">Click <strong>Save Profile</strong></span></li>
   </ol>
 </div>
 
 <div class="article">
   <div class="article-title">Changing your password</div>
   <ol class="steps">
-    <li><span class="step-num">1</span><span class="step-text">Go to Profile → scroll to <strong>Change Password</strong></span></li>
-    <li><span class="step-num">2</span><span class="step-text">Enter your Current Password, then your New Password (minimum 8 characters)</span></li>
-    <li><span class="step-num">3</span><span class="step-text">Confirm the new password and click <strong>Change Password</strong></span></li>
+    <li><span class="step-num">1</span><span class="step-text">Go to <strong>Settings → My Profile</strong> tab, or click your name in the sidebar</span></li>
+    <li><span class="step-num">2</span><span class="step-text">Scroll to <strong>Change Password</strong> — enter your Current Password (use the eye icon to verify it), then your New Password (minimum 8 characters)</span></li>
+    <li><span class="step-num">3</span><span class="step-text">Confirm the new password and click <strong>Save Profile</strong></span></li>
   </ol>
 </div>
 

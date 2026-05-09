@@ -33,6 +33,7 @@ const SECTIONS: Section[] = [
         title: 'How to log in',
         content: [
           { type: 'steps', items: ['Go to nedsdrishti.in', 'Enter your email and password', 'Click Sign In — you\'ll land on your Dashboard'] },
+          { type: 'tip', text: 'Use the eye icon next to the password field to show or hide what you are typing.' },
           { type: 'note', text: 'If you forget your password, ask your Agency Owner to reset it from Settings → Team.' },
         ],
       },
@@ -540,14 +541,14 @@ const SECTIONS: Section[] = [
       {
         title: 'Updating your name or email',
         content: [
-          { type: 'steps', items: ['Click your name at the bottom of the sidebar — this opens the Profile page', 'Under Personal Details, edit your Full Name and/or Email Address', 'Click Save Changes'] },
+          { type: 'steps', items: ['Go to Settings → My Profile tab, or click your name at the bottom of the sidebar', 'Under Account Info, edit your Full Name and/or Email Address', 'Click Save Profile'] },
           { type: 'note', text: 'If you change your email address, use the new email to log in next time.' },
         ],
       },
       {
         title: 'Changing your password',
         content: [
-          { type: 'steps', items: ['Go to Profile (click your name in the sidebar)', 'Scroll to the Change Password section', 'Enter your Current Password, then your New Password (minimum 8 characters)', 'Confirm the new password and click Change Password'] },
+          { type: 'steps', items: ['Go to Settings → My Profile tab, or click your name in the sidebar', 'Scroll to the Change Password section', 'Enter your Current Password (use the eye icon to verify), then your New Password (minimum 8 characters)', 'Confirm the new password and click Save Profile'] },
           { type: 'tip', text: 'If you\'ve forgotten your current password, ask the Agency Owner to reset it for you from Settings → Team.' },
         ],
       },
