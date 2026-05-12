@@ -900,7 +900,7 @@ export default function ClientDetail() {
       toast.success('Client deleted');
       navigate('/clients');
     },
-    onError: (err: Error) => toast.error(err.message || 'Failed to delete client'),
+    onError: (err: Error) => { setConfirmDelete(false); toast.error(err.message || 'Failed to delete client'); },
   });
 
   const { data, isLoading, isError } = useQuery({

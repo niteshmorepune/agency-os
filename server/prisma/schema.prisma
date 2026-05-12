@@ -138,7 +138,7 @@ enum ClientStatus {
 model ClientAssignment {
   id        String   @id @default(cuid())
   clientId  String
-  client    Client   @relation(fields: [clientId], references: [id])
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
@@ -151,7 +151,7 @@ model ClientAssignment {
 model AuditProject {
   id                String       @id @default(cuid())
   clientId          String
-  client            Client       @relation(fields: [clientId], references: [id])
+  client            Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
   name              String
   status            AuditStatus  @default(IN_PROGRESS)
   overallScore      Int?
@@ -171,7 +171,7 @@ enum AuditStatus {
 model AuditCheck {
   id            String           @id @default(cuid())
   auditId       String
-  audit         AuditProject     @relation(fields: [auditId], references: [id])
+  audit         AuditProject     @relation(fields: [auditId], references: [id], onDelete: Cascade)
   moduleId      String // e.g. "website_seo", "social_media"
   checkId       String // e.g. "ssl_check", "pagespeed"
   status        AuditCheckStatus @default(PENDING)
@@ -195,9 +195,9 @@ enum AuditCheckStatus {
 model AuditNote {
   id         String        @id @default(cuid())
   auditId    String?
-  audit      AuditProject? @relation(fields: [auditId], references: [id])
+  audit      AuditProject? @relation(fields: [auditId], references: [id], onDelete: SetNull)
   checkId    String?
-  auditCheck AuditCheck?   @relation(fields: [checkId], references: [id])
+  auditCheck AuditCheck?   @relation(fields: [checkId], references: [id], onDelete: SetNull)
   authorId   String
   author     User          @relation(fields: [authorId], references: [id])
   content    String
@@ -212,7 +212,7 @@ model AuditNote {
 model PlatformOptimization {
   id           String                 @id @default(cuid())
   clientId     String
-  client       Client                 @relation(fields: [clientId], references: [id])
+  client       Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
   platform     Platform
   score        Int                    @default(0)
   updatedAt    DateTime               @updatedAt
@@ -240,7 +240,7 @@ enum Platform {
 model PlatformCheck {
   id             String               @id @default(cuid())
   optimizationId String
-  optimization   PlatformOptimization @relation(fields: [optimizationId], references: [id])
+  optimization   PlatformOptimization @relation(fields: [optimizationId], references: [id], onDelete: Cascade)
   checkId        String
   status         CheckStatus          @default(PENDING)
   score          Int?
@@ -264,7 +264,7 @@ enum CheckStatus {
 model PlatformScoreHistory {
   id             String               @id @default(cuid())
   optimizationId String
-  optimization   PlatformOptimization @relation(fields: [optimizationId], references: [id])
+  optimization   PlatformOptimization @relation(fields: [optimizationId], references: [id], onDelete: Cascade)
   score          Int
   recordedAt     DateTime             @default(now())
 }
@@ -274,7 +274,7 @@ model PlatformScoreHistory {
 model PostDraft {
   id                String         @id @default(cuid())
   clientId          String
-  client            Client         @relation(fields: [clientId], references: [id])
+  client            Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdById       String
   createdBy         User           @relation(fields: [createdById], references: [id])
   platforms         Platform[]
@@ -312,7 +312,7 @@ enum ApprovalStatus {
 model ContentIdea {
   id         String     @id @default(cuid())
   clientId   String
-  client     Client     @relation(fields: [clientId], references: [id])
+  client     Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
   platform   Platform
   title      String
   format     String
@@ -336,7 +336,7 @@ model AIUsageLog {
   userId       String
   user         User     @relation(fields: [userId], references: [id])
   clientId     String?
-  client       Client?  @relation(fields: [clientId], references: [id])
+  client       Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   toolId       String
   inputTokens  Int
   outputTokens Int
@@ -350,7 +350,7 @@ model AIUsageLog {
 model HashtagSet {
   id        String   @id @default(cuid())
   clientId  String
-  client    Client   @relation(fields: [clientId], references: [id])
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   platform  Platform
   topic     String
   niche     String?
@@ -361,7 +361,7 @@ model HashtagSet {
 model AudiencePersona {
   id              String   @id @default(cuid())
   clientId        String
-  client          Client   @relation(fields: [clientId], references: [id])
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   name            String
   demographics    Json
   psychographics  Json
@@ -378,7 +378,7 @@ model AudiencePersona {
 model CompetitorProfile {
   id            String   @id @default(cuid())
   clientId      String
-  client        Client   @relation(fields: [clientId], references: [id])
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   name          String
   website       String?
   platforms     Json
@@ -392,7 +392,7 @@ model CompetitorProfile {
 model GeneratedReport {
   id        String     @id @default(cuid())
   clientId  String
-  client    Client     @relation(fields: [clientId], references: [id])
+  client    Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
   type      ReportType
   period    String
   pdfUrl    String
@@ -537,7 +537,7 @@ model ClientActionItem {
   id            String           @id @default(cuid())
   agencyId      String
   clientId      String
-  client        Client           @relation(fields: [clientId], references: [id])
+  client        Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
   title         String
   description   String?
   dueDate       DateTime?
@@ -562,7 +562,7 @@ model ClientMessage {
   id         String   @id @default(cuid())
   agencyId   String
   clientId   String
-  client     Client   @relation(fields: [clientId], references: [id])
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   senderId   String
   senderRole String
   senderName String
@@ -576,7 +576,7 @@ model ClientMessage {
 model OnboardingToken {
   id        String    @id @default(cuid())
   clientId  String    @unique
-  client    Client    @relation(fields: [clientId], references: [id])
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   token     String    @unique
   expiresAt DateTime
   usedAt    DateTime?
