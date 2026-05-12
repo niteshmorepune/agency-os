@@ -94,7 +94,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
   <div class="toc-article">How to log in · Understanding your role · Navigating the app</div>
 
   <div class="toc-section">2. Client Management</div>
-  <div class="toc-article">Adding clients · Assigning team members · Health scores · Client invite · Onboarding questionnaire · Action Items · In-app messaging</div>
+  <div class="toc-article">Adding clients · Assigning team members · Health scores · Client invite · Onboarding questionnaire · Action Items · In-app messaging · Deleting a client</div>
 
   <div class="toc-section">3. Content Studio</div>
   <div class="toc-article">Creating posts · Templates · Hashtag sets · Media library · Post approval workflow · Content Calendar · Ideas Engine</div>
@@ -115,7 +115,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
   <div class="toc-article">What clients see · Downloading reports · Action items · Messaging agency team</div>
 
   <div class="toc-section">9. Settings</div>
-  <div class="toc-article">Branding · API keys · Team management · Webhooks · Signature verification</div>
+  <div class="toc-article">Branding · API keys (Dashboard shortcut) · Team management · Webhooks · Signature verification</div>
 
   <div class="toc-section">10. Invoices</div>
   <div class="toc-article">Creating invoices · Status workflow · PDF download · Tracking payments</div>
@@ -186,7 +186,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
   <div class="section-icon" style="background:#e0e7ff;color:#4f46e5;">👥</div>
   <div>
     <div class="section-title">2. Client Management</div>
-    <div class="section-count">7 articles</div>
+    <div class="section-count">8 articles</div>
   </div>
 </div>
 
@@ -265,6 +265,18 @@ const GUIDE_HTML = `<!DOCTYPE html>
     <li><span class="step-num">5</span><span class="step-text">Client side: open their portal → scroll to the Messages section</span></li>
   </ol>
   <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">Use Shift+Enter to add a line break without sending the message.</span></div>
+</div>
+
+<div class="article">
+  <div class="article-title">Deleting a client <span class="role-badge">Owner</span></div>
+  <p class="para">Deleting a client permanently removes the client record and all associated data — posts, audits, platform scores, invoices, messages, action items, and media.</p>
+  <ol class="steps">
+    <li><span class="step-num">1</span><span class="step-text">Open the client → click the red <strong>trash icon</strong> in the top-right header</span></li>
+    <li><span class="step-num">2</span><span class="step-text">A confirmation dialog appears showing the client name</span></li>
+    <li><span class="step-num">3</span><span class="step-text">Click <strong>"Yes, delete"</strong> to permanently delete</span></li>
+    <li><span class="step-num">4</span><span class="step-text">You are redirected to the Clients list automatically</span></li>
+  </ol>
+  <div class="note"><span class="note-label">NOTE</span><span class="note-text">This cannot be undone. All associated data is deleted permanently. Only the Owner role has access to the delete button.</span></div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
@@ -649,10 +661,11 @@ const GUIDE_HTML = `<!DOCTYPE html>
   <div class="article-title">Connecting API keys <span class="role-badge">Owner</span></div>
   <ol class="steps">
     <li><span class="step-num">1</span><span class="step-text">Go to <strong>Settings → API Keys</strong></span></li>
-    <li><span class="step-num">2</span><span class="step-text">Enter keys for: SMTP email, Google Analytics, Meta Business, etc.</span></li>
+    <li><span class="step-num">2</span><span class="step-text">Enter keys for: Anthropic (required for all AI), SMTP email, Google PSI, Ahrefs, DataForSEO</span></li>
     <li><span class="step-num">3</span><span class="step-text">Keys are stored AES-256 encrypted — nobody can read them back</span></li>
     <li><span class="step-num">4</span><span class="step-text">Click <strong>Save Keys</strong></span></li>
   </ol>
+  <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">From the Dashboard, the Setup Reminder "Go to Settings →" link opens directly on the API Keys tab for quick first-time setup.</span></div>
   <div class="note"><span class="note-label">NOTE</span><span class="note-text">Never share API keys over Slack or email. Use this Settings page only.</span></div>
 </div>
 

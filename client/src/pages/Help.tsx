@@ -131,6 +131,15 @@ const SECTIONS: Section[] = [
           { type: 'note', text: 'Messages are sent per-client — they are not a shared team chat. Only agency members assigned to the client and the client themselves can see the thread.' },
         ],
       },
+      {
+        title: 'Deleting a client',
+        role: 'Owner',
+        content: [
+          { type: 'para', text: 'Deleting a client permanently removes the client record and all associated data — posts, audits, platform scores, invoices, messages, action items, and media.' },
+          { type: 'steps', items: ['Open the client → click the red trash icon in the top-right header', 'A confirmation dialog appears showing the client name', 'Click "Yes, delete" to permanently delete', 'You are redirected to the Clients list automatically'] },
+          { type: 'note', text: 'This cannot be undone. All associated data is deleted permanently. Only the Owner role has access to the delete button.' },
+        ],
+      },
     ],
   },
   {
@@ -400,7 +409,8 @@ const SECTIONS: Section[] = [
         title: 'Connecting API keys',
         role: 'Owner',
         content: [
-          { type: 'steps', items: ['Go to Settings → API Keys', 'Enter keys for: Google Analytics, Google Search Console, Meta Business, etc.', 'Keys are stored AES-256 encrypted — nobody can read them back', 'Click Save Keys'] },
+          { type: 'steps', items: ['Go to Settings → API Keys', 'Enter keys for: Anthropic (required for all AI), SMTP email, Google PSI, Ahrefs, DataForSEO', 'Keys are stored AES-256 encrypted — nobody can read them back', 'Click Save Keys'] },
+          { type: 'tip', text: 'From the Dashboard, the Setup Reminder "Go to Settings →" link opens directly on the API Keys tab for quick first-time setup.' },
           { type: 'note', text: 'Never share API keys over Slack or email. Use this Settings page only.' },
         ],
       },
