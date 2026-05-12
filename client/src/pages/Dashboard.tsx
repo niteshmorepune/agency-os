@@ -148,7 +148,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-amber-800">Setup Reminder</p>
                   <p className="text-xs text-amber-700 mt-0.5">Configure API keys in Settings to unlock all AI features.</p>
-                  <Link to="/settings" className="text-xs text-amber-700 underline mt-1 inline-block">Go to Settings →</Link>
+                  <Link to="/settings" state={{ tab: 'api-keys' }} className="text-xs text-amber-700 underline mt-1 inline-block">Go to Settings →</Link>
                 </div>
               </div>
             </div>

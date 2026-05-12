@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -733,7 +734,9 @@ type Tab = 'branding' | 'api-keys' | 'team' | 'webhooks' | 'profile';
 
 export default function Settings() {
   const user = useAuthStore(s => s.user);
-  const [tab, setTab] = useState<Tab>('branding');
+  const location = useLocation();
+  const initialTab = (location.state as { tab?: Tab } | null)?.tab ?? 'branding';
+  const [tab, setTab] = useState<Tab>(initialTab);
   const isOwner = user?.role === 'OWNER';
 
   const { data, isLoading } = useQuery({
