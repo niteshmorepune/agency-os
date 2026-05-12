@@ -3,7 +3,7 @@ export const TOKEN_BUDGETS: Record<string, number> = {
   hashtag: 300,
   bio: 1500,
   subject_line: 200,
-  ad_headlines: 600,
+  ad_headlines: 1400,
   thread: 1200,
   email_body: 1000,
   review_reply: 300,

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Bot, Sparkles, Copy, RefreshCw, Check, BarChart2, ChevronLeft, Database, Users, Clock, TrendingUp } from 'lucide-react';
+import { Bot, Sparkles, Copy, RefreshCw, Check, BarChart2, ChevronLeft, Database, Clock, TrendingUp } from 'lucide-react';
 import { api } from '../api/client';
 import { SafeAIOutput } from '../lib/safeAI';
 
@@ -12,6 +12,7 @@ interface ToolField {
   options?: string[];
   placeholder?: string;
   required?: boolean;
+  noUrl?: boolean;
 }
 
 interface Tool {
@@ -101,7 +102,7 @@ const TOOLS: Tool[] = [
     description: 'Transform one piece of content into 10 platform-native formats',
     endpoint: '/ai/repurpose',
     fields: [
-      { key: 'sourceContent', label: 'Source content', type: 'textarea', placeholder: 'Paste your blog post, video script, podcast transcript...', required: true },
+      { key: 'sourceContent', label: 'Source content', type: 'textarea', placeholder: 'Paste your blog post, video script, podcast transcript — do not paste a URL', required: true, noUrl: true },
       { key: 'sourceType', label: 'Source type', type: 'select', options: ['blog', 'video', 'podcast'] },
       { key: 'targetPlatforms', label: 'Target platforms (comma-separated)', type: 'text', placeholder: 'E.g. LinkedIn, Twitter, Instagram, Email' },
     ],
@@ -142,7 +143,10 @@ const TOOLS: Tool[] = [
       { key: 'product', label: 'Product/Service', type: 'text', placeholder: 'E.g. CRM software for small businesses', required: true },
       { key: 'usp', label: 'Unique selling point', type: 'text', placeholder: 'What makes you different?' },
       { key: 'targetAudience', label: 'Target audience', type: 'text', placeholder: 'E.g. SMB owners in India' },
-      { key: 'platform', label: 'Platform', type: 'select', options: ['GOOGLE', 'META'] },
+      { key: 'platform', label: 'Platform', type: 'select', options: ['GOOGLE', 'META', 'BOTH'] },
+      { key: 'keywords', label: 'Target keywords', type: 'text', placeholder: 'E.g. CRM software, sales automation, small business' },
+      { key: 'location', label: 'Target location', type: 'text', placeholder: 'E.g. Mumbai, Pune, Maharashtra, India' },
+      { key: 'sitelinks', label: 'Sitelink pages (optional)', type: 'text', placeholder: 'E.g. Pricing, Free Trial, Contact Us, Features' },
     ],
   },
   {
@@ -260,6 +264,14 @@ function ToolRunner({ tool, onBack }: { tool: Tool; onBack: () => void }) {
   const clients = (clientsData?.data ?? []).filter(c => c.status === 'ACTIVE');
 
   const handleRun = async () => {
+    // Validate noUrl fields before sending
+    for (const field of tool.fields.filter(f => f.noUrl)) {
+      const val = (inputs[field.key] ?? '').trim();
+      if (/^https?:\/\//i.test(val)) {
+        setError(`"${field.label}" must be pasted text content, not a URL. We can't fetch web pages — copy and paste the actual article or script text.`);
+        return;
+      }
+    }
     setLoading(true);
     setError('');
     try {
@@ -318,22 +330,27 @@ function ToolRunner({ tool, onBack }: { tool: Tool; onBack: () => void }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input panel */}
         <div className="card p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-gray-700">Input</h3>
-            {clients.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Users size={14} className="text-gray-400" />
-                <select
-                  className="text-sm border border-gray-200 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
-                  value={clientId}
-                  onChange={e => setClientId(e.target.value)}
-                >
-                  <option value="">No client context</option>
-                  {clients.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
+          <h3 className="font-semibold text-gray-700">Input</h3>
+
+          {/* Client selector — always prominent at top */}
+          <div>
+            <label className="label">
+              Client <span className="text-gray-400 text-xs font-normal">(optional — adds brand context to the output)</span>
+            </label>
+            <select
+              className="input"
+              value={clientId}
+              onChange={e => setClientId(e.target.value)}
+            >
+              <option value="">No client — generate without context</option>
+              {clients.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            {clientId && (
+              <p className="text-xs text-primary-600 mt-1">
+                Using {clients.find(c => c.id === clientId)?.name}'s brand, industry and audience context
+              </p>
             )}
           </div>
 
@@ -409,11 +426,6 @@ function ToolRunner({ tool, onBack }: { tool: Tool; onBack: () => void }) {
             <div className="flex flex-col items-center justify-center h-48 text-gray-300">
               <Bot size={40} className="mb-3" />
               <p className="text-sm">Your AI output will appear here</p>
-              {clientId && clients.length > 0 && (
-                <p className="text-xs mt-1 text-primary-400">
-                  Context: {clients.find(c => c.id === clientId)?.name}
-                </p>
-              )}
             </div>
           )}
         </div>

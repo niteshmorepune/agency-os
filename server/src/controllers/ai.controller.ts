@@ -83,14 +83,33 @@ export async function emailCopyWriter(req: Request, res: Response): Promise<void
 }
 
 export async function adCopyGenerator(req: Request, res: Response): Promise<void> {
-  const schema = z.object({ product: z.string().min(1), usp: z.string().optional(), targetAudience: z.string().optional(), platform: z.enum(['GOOGLE', 'META']).optional(), clientId: z.string().optional(), forceRefresh: z.boolean().optional() });
-  const { product, usp, targetAudience, platform, clientId, forceRefresh } = schema.parse(req.body);
+  const schema = z.object({
+    product: z.string().min(1),
+    usp: z.string().optional(),
+    targetAudience: z.string().optional(),
+    platform: z.enum(['GOOGLE', 'META', 'BOTH']).optional(),
+    keywords: z.string().optional(),
+    location: z.string().optional(),
+    sitelinks: z.string().optional(),
+    clientId: z.string().optional(),
+    forceRefresh: z.boolean().optional(),
+  });
+  const { product, usp, targetAudience, platform, keywords, location, sitelinks, clientId, forceRefresh } = schema.parse(req.body);
   const ctx = await getClientCtx(clientId, req.user!.agencyId);
+
+  const platformLabel = platform === 'BOTH' ? 'Google Ads AND Meta Ads' : platform === 'META' ? 'Meta Ads' : 'Google Ads';
+  const googleSection = (platform === 'GOOGLE' || platform === 'BOTH' || !platform)
+    ? `\n\n## GOOGLE ADS\n- 15 headline variants (30 chars max each)\n- 4 description variants (90 chars max each)\n- 5 responsive search ad combos${sitelinks ? `\n- 6 sitelink extensions for pages: ${sitelinks} (25 char headline + 35 char description each)` : ''}`
+    : '';
+  const metaSection = (platform === 'META' || platform === 'BOTH')
+    ? `\n\n## META ADS\n- 5 primary text variants (125 chars max)\n- 5 headline variants (40 chars max)\n- 3 link description variants (30 chars max)\n- 3 CTA button options`
+    : '';
+
   const { result, cached } = await runAITool({
     toolId: 'ad_headlines',
     systemPrompt: SYSTEM_BASE,
-    userPrompt: `Generate ${platform ?? 'Google'} Ads copy for: "${product}"\nUSP: ${usp ?? 'not specified'}\nTarget audience: ${targetAudience ?? 'general'}\n\nOutput:\n- 15 headline variants (30 chars max each)\n- 4 description variants (90 chars max each)\n- 5 CTA options`,
-    inputs: { product, usp: usp ?? '', targetAudience: targetAudience ?? '', platform: platform ?? 'GOOGLE' },
+    userPrompt: `Generate ${platformLabel} copy for: "${product}"\nUSP: ${usp ?? 'not specified'}\nTarget audience: ${targetAudience ?? 'general'}\nTarget keywords: ${keywords ?? 'not specified'}\nTarget location: ${location ?? 'not specified'}${googleSection}${metaSection}\n\nFor every headline and description, naturally weave in the target keywords where relevant. All copy must be conversion-focused and location-aware where applicable.`,
+    inputs: { product, usp: usp ?? '', targetAudience: targetAudience ?? '', platform: platform ?? 'GOOGLE', keywords: keywords ?? '', location: location ?? '', sitelinks: sitelinks ?? '' },
     user: req.user!,
     clientId,
     clientContext: ctx,
