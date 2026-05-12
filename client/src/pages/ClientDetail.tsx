@@ -888,8 +888,20 @@ type Tab = 'overview' | 'platforms' | 'team' | 'reports' | 'action-items' | 'mes
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const qc = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/clients/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['clients'] });
+      toast.success('Client deleted');
+      navigate('/clients');
+    },
+    onError: (err: Error) => toast.error(err.message || 'Failed to delete client'),
+  });
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['client', id],
@@ -948,7 +960,42 @@ export default function ClientDetail() {
         <Link to={`/audit/${client.id}`} className="btn-secondary flex items-center gap-2 flex-shrink-0 text-sm">
           <ClipboardList size={16} /> Audits
         </Link>
+        {user?.role === 'OWNER' && (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+            title="Delete client"
+          >
+            <Trash2 size={18} />
+          </button>
+        )}
       </div>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 size={20} className="text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Delete client?</h3>
+                <p className="text-sm text-gray-500">This will permanently delete <strong>{client.name}</strong> and all associated data. This cannot be undone.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setConfirmDelete(false)} className="btn-secondary text-sm">Cancel</button>
+              <button
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {deleteMutation.isPending ? 'Deleting…' : 'Yes, delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {!client.onboardingComplete && <OnboardingChecklist client={client} />}
 

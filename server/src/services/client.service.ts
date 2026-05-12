@@ -65,8 +65,19 @@ export async function createClient(data: {
   targetAudience?: string; competitors?: string[]; monthlyRetainer?: number;
   contactName?: string; contactEmail?: string; notes?: string;
 }, user: JwtPayload) {
+  const normalizedDomain = data.domain.toLowerCase().trim();
+  const existing = await prisma.client.findFirst({
+    where: { agencyId: user.agencyId, domain: { equals: normalizedDomain, mode: 'insensitive' } },
+    select: { id: true, name: true },
+  });
+  if (existing) {
+    throw Object.assign(
+      new Error(`A client with domain "${normalizedDomain}" already exists (${existing.name})`),
+      { statusCode: 409 },
+    );
+  }
   return prisma.client.create({
-    data: { ...data, agencyId: user.agencyId, competitors: data.competitors ?? [] },
+    data: { ...data, domain: normalizedDomain, agencyId: user.agencyId, competitors: data.competitors ?? [] },
   });
 }
 

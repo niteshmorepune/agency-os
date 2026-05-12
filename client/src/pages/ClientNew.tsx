@@ -47,7 +47,7 @@ export default function ClientNew() {
       toast.success('Client created');
       navigate(`/clients/${res.data.id}`);
     },
-    onError: () => toast.error('Failed to create client'),
+    onError: (err: Error) => toast.error(err.message || 'Failed to create client'),
   });
 
   function addCompetitor() {
