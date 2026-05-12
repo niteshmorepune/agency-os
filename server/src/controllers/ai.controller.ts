@@ -285,20 +285,26 @@ export async function engagementAnalyzer(req: Request, res: Response): Promise<v
   };
 
   if (rating !== 'good' && rating !== 'excellent') {
-    const ctx = await getClientCtx(clientId, req.user!.agencyId);
-    const ratingLabel = rating.replace('_', ' ');
-    const { result: aiResult, cached } = await runAITool({
-      toolId: 'engagement',
-      systemPrompt: SYSTEM_BASE,
-      userPrompt: `Client: ${ctx?.brandName ?? 'Agency client'}, Platform: ${platform}\nFollowers: ${followers}, Engagement rate: ${engRate.toFixed(2)}%\nBenchmark for this tier: ${benchmark.good}% = good, ${benchmark.avg}% = average\nIndustry: ${industry ?? ctx?.industry ?? 'general'}\n\nThey are ${ratingLabel}. Give 5 specific, actionable recommendations to improve engagement rate on ${platform}.\nBe platform-specific. No generic advice. Max 80 words per recommendation.\nReturn as JSON array: [{"recommendation": "...", "impact": "high/med/low", "effort": "high/med/low"}]`,
-      inputs: { platform, followers: String(followers), engRate: String(engRate.toFixed(2)), rating, industry: industry ?? '' },
-      user: req.user!,
-      clientId,
-      clientContext: ctx,
-      forceRefresh,
-    });
-    result.recommendations = aiResult;
-    result.cached = cached;
+    try {
+      const ctx = await getClientCtx(clientId, req.user!.agencyId);
+      const ratingLabel = rating.replace('_', ' ');
+      const { result: aiResult, cached } = await runAITool({
+        toolId: 'engagement',
+        systemPrompt: SYSTEM_BASE,
+        userPrompt: `Client: ${ctx?.brandName ?? 'Agency client'}, Platform: ${platform}\nFollowers: ${followers}, Engagement rate: ${engRate.toFixed(2)}%\nBenchmark for this tier: ${benchmark.good}% = good, ${benchmark.avg}% = average\nIndustry: ${industry ?? ctx?.industry ?? 'general'}\n\nThey are ${ratingLabel}. Give 5 specific, actionable recommendations to improve engagement rate on ${platform}.\nBe platform-specific. No generic advice. Max 80 words per recommendation.\nReturn ONLY a raw JSON array, no markdown: [{"recommendation": "...", "impact": "high/med/low", "effort": "high/med/low"}]`,
+        inputs: { platform, followers: String(followers), engRate: String(engRate.toFixed(2)), rating, industry: industry ?? '' },
+        user: req.user!,
+        clientId,
+        clientContext: ctx,
+        forceRefresh,
+      });
+      // Strip markdown code fences if Claude wrapped the JSON
+      const cleaned = aiResult.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      result.recommendations = cleaned;
+      result.cached = cached;
+    } catch {
+      // AI recommendations failed — still return the metrics
+    }
   }
 
   res.json({ data: result });

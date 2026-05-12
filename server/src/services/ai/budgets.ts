@@ -1,7 +1,7 @@
 export const TOKEN_BUDGETS: Record<string, number> = {
   caption: 400,
   hashtag: 300,
-  bio: 500,
+  bio: 1500,
   subject_line: 200,
   ad_headlines: 600,
   thread: 1200,
@@ -16,10 +16,10 @@ export const TOKEN_BUDGETS: Record<string, number> = {
   keyword: 500,
   hook: 400,
   script: 1200,
-  post_ideas: 800,
+  post_ideas: 2500,
   digest: 1200,
   posting_time: 400,
-  engagement: 600,
+  engagement: 1200,
   platform_rewrite: 500,
 };
 

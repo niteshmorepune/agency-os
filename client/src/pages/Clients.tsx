@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Search, Building2, Globe, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '../api/client';
+import { useAuthStore } from '../store/auth.store';
 
 interface Client {
   id: string;
@@ -23,6 +24,8 @@ const HEALTH_META = {
 };
 
 export default function Clients() {
+  const { user } = useAuthStore();
+  const isOwnerOrAM = user?.role === 'OWNER' || user?.role === 'ACCOUNT_MANAGER';
   const [search, setSearch] = useState('');
   const { data, isLoading } = useQuery({
     queryKey: ['clients'],
@@ -64,12 +67,26 @@ export default function Clients() {
       ) : clients.length === 0 ? (
         <div className="card p-16 text-center">
           <Building2 size={48} className="mx-auto text-gray-300 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700">No clients found</h3>
-          <p className="text-gray-500 mt-1">Get started by adding your first client.</p>
-          <Link to="/clients/new" className="btn-primary mt-4 inline-flex">
-            <Plus size={18} />
-            Add Client
-          </Link>
+          {search ? (
+            <>
+              <h3 className="text-lg font-semibold text-gray-700">No clients match "{search}"</h3>
+              <p className="text-gray-500 mt-1">Try a different name or domain.</p>
+            </>
+          ) : data?.pagination?.total === 0 && !isOwnerOrAM ? (
+            <>
+              <h3 className="text-lg font-semibold text-gray-700">No clients assigned yet</h3>
+              <p className="text-gray-500 mt-1">You haven't been assigned to any clients. Contact your account owner to get added.</p>
+            </>
+          ) : (
+            <>
+              <h3 className="text-lg font-semibold text-gray-700">No clients yet</h3>
+              <p className="text-gray-500 mt-1">Get started by adding your first client.</p>
+              <Link to="/clients/new" className="btn-primary mt-4 inline-flex">
+                <Plus size={18} />
+                Add Client
+              </Link>
+            </>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
