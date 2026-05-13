@@ -77,7 +77,13 @@ export async function createClient(data: {
     );
   }
   return prisma.client.create({
-    data: { ...data, domain: normalizedDomain, agencyId: user.agencyId, competitors: data.competitors ?? [] },
+    data: {
+      ...data,
+      domain: normalizedDomain,
+      agencyId: user.agencyId,
+      competitors: data.competitors ?? [],
+      assignments: { create: { userId: user.userId } },
+    },
   });
 }
 
