@@ -19,7 +19,7 @@ const nav = [
   { label: 'Analytics', icon: BarChart3, href: '/analytics', roles: 'all' },
   { label: 'Optimize', icon: Zap, href: '/optimize', roles: 'all' },
   { label: 'Invoices', icon: Receipt, href: '/invoices', roles: [Role.OWNER, Role.ACCOUNT_MANAGER] },
-  { label: 'Activity', icon: Activity, href: '/activity', roles: [Role.OWNER] },
+  { label: 'Activity', icon: Activity, href: '/activity', roles: [Role.OWNER, Role.ACCOUNT_MANAGER] },
   { label: 'Settings', icon: Settings, href: '/admin', roles: [Role.OWNER] },
   { label: 'Help & Guide', icon: BookOpen, href: '/help', roles: 'all' },
 ];

@@ -30,8 +30,14 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 router.put('/:id', asyncHandler(async (req, res) => {
+  if (req.params.id === req.user!.userId) { res.status(400).json({ error: 'Cannot change your own role' }); return; }
   const schema = z.object({ name: z.string().min(1).optional(), role: z.enum(['OWNER', 'ACCOUNT_MANAGER', 'CONTENT_CREATOR', 'SEO_ANALYST', 'CLIENT']).optional(), isActive: z.boolean().optional() });
   const data = schema.parse(req.body);
+  if (data.role !== undefined) {
+    const target = await prisma.user.findFirst({ where: { id: req.params.id, agencyId: req.user!.agencyId }, select: { role: true } });
+    if (!target) { res.status(404).json({ error: 'User not found' }); return; }
+    if (target.role === 'OWNER') { res.status(400).json({ error: 'Cannot change the role of another Owner' }); return; }
+  }
   const user = await prisma.user.update({ where: { id: req.params.id, agencyId: req.user!.agencyId }, data, select: { id: true, email: true, name: true, role: true, isActive: true } });
   res.json({ data: user });
 }));
