@@ -296,11 +296,26 @@ const GUIDE_HTML = `<!DOCTYPE html>
     <li><span class="step-num">1</span><span class="step-text">Go to <strong>Content → New Post</strong></span></li>
     <li><span class="step-num">2</span><span class="step-text">Select the Client from the dropdown</span></li>
     <li><span class="step-num">3</span><span class="step-text">Choose one or more Platforms (LinkedIn, Instagram, etc.)</span></li>
-    <li><span class="step-num">4</span><span class="step-text">Write your Caption in the text area</span></li>
+    <li><span class="step-num">4</span><span class="step-text">Write your Caption in the text area or use <strong>AI Generate</strong></span></li>
     <li><span class="step-num">5</span><span class="step-text">Add Hashtags — type and press Enter or comma to add each one</span></li>
-    <li><span class="step-num">6</span><span class="step-text">Optionally set a Scheduled Date &amp; Time</span></li>
+    <li><span class="step-num">6</span><span class="step-text">Optionally set a Scheduled Date &amp; Time — the post will be saved as <strong>Scheduled</strong> automatically</span></li>
     <li><span class="step-num">7</span><span class="step-text">Click <strong>Save as Draft</strong> or <strong>Save &amp; Schedule</strong></span></li>
   </ol>
+  <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">Posts with a scheduled date are automatically marked Scheduled. Posts without a date are saved as Draft.</span></div>
+</div>
+
+<div class="article">
+  <div class="article-title">AI caption variant picker</div>
+  <p class="para">The AI Generate button in the Content Composer produces 5 caption variants and displays them as a picker — choose the best one rather than editing a wall of text.</p>
+  <ol class="steps">
+    <li><span class="step-num">1</span><span class="step-text">Write a brief topic or key message in the Caption field</span></li>
+    <li><span class="step-num">2</span><span class="step-text">Select a client and platform first (required for AI context)</span></li>
+    <li><span class="step-num">3</span><span class="step-text">Click <strong>AI Generate</strong> — a violet panel replaces the textarea showing 5 variant cards</span></li>
+    <li><span class="step-num">4</span><span class="step-text">Each card shows a preview of the caption and how many hashtags are included</span></li>
+    <li><span class="step-num">5</span><span class="step-text">Click <strong>"Use this"</strong> on the variant you want — caption and hashtags load instantly</span></li>
+    <li><span class="step-num">6</span><span class="step-text">Click × to dismiss the picker and return to manual editing</span></li>
+  </ol>
+  <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">Hashtags from the chosen variant are merged into the hashtag field automatically — no copy-pasting needed.</span></div>
 </div>
 
 <div class="article">
@@ -364,7 +379,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
     <li><span class="step-num">1</span><span class="step-text">Go to <strong>AI Studio → Caption Generator</strong></span></li>
     <li><span class="step-num">2</span><span class="step-text">Select client, platform, and tone</span></li>
     <li><span class="step-num">3</span><span class="step-text">Enter a brief topic or key message</span></li>
-    <li><span class="step-num">4</span><span class="step-text">Click <strong>Generate</strong> — get 3 caption variations</span></li>
+    <li><span class="step-num">4</span><span class="step-text">Click <strong>Generate</strong> — get 5 caption variations</span></li>
     <li><span class="step-num">5</span><span class="step-text">Click <strong>Use</strong> on any caption to load it directly into the Content Composer</span></li>
   </ol>
 </div>
@@ -499,6 +514,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
     <li><span class="step-num">4</span><span class="step-text">Work through each check — mark Pass, Fail, or N/A</span></li>
     <li><span class="step-num">5</span><span class="step-text">Add notes to any item for client-facing context</span></li>
   </ol>
+  <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">A new audit shows "Not Started" (grey) on the list — this is not an automated scan. Once you mark any check, the label changes to "In Progress" (blue). Click "Mark Complete" when all checks are done.</span></div>
 </div>
 
 <div class="article">

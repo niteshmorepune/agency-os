@@ -151,14 +151,22 @@ const SECTIONS: Section[] = [
       {
         title: 'Creating a new post',
         content: [
-          { type: 'steps', items: ['Go to Content → click New Post', 'Select the Client from the dropdown', 'Choose one or more Platforms (LinkedIn, Instagram, etc.)', 'Write your Caption in the text area', 'Add Hashtags — type and press Enter or comma to add each one', 'Optionally set a Scheduled Date & Time', 'Click Save as Draft or Save & Schedule'] },
-          { type: 'tip', text: 'Use the "Generate Caption" button to have AI write a platform-optimised caption based on the client\'s niche.' },
+          { type: 'steps', items: ['Go to Content → click New Post', 'Select the Client from the dropdown', 'Choose one or more Platforms (LinkedIn, Instagram, etc.)', 'Write your Caption in the text area or use AI Generate', 'Add Hashtags — type and press Enter or comma to add each one', 'Optionally set a Scheduled Date & Time — the post will be saved as Scheduled automatically', 'Click Save as Draft or Save & Schedule'] },
+          { type: 'tip', text: 'Posts with a scheduled date are automatically marked Scheduled. Posts without a date are saved as Draft.' },
+        ],
+      },
+      {
+        title: 'AI caption variant picker',
+        content: [
+          { type: 'para', text: 'The AI Generate button in the Content Composer produces 5 caption variants and shows them as a picker — so you choose the best one rather than editing a wall of text.' },
+          { type: 'steps', items: ['Write a brief topic or key message in the Caption field', 'Select a client and platform first (required for AI context)', 'Click AI Generate — a violet panel replaces the textarea showing 5 variant cards', 'Each card shows a preview of the caption and how many hashtags are included', 'Click "Use this" on the variant you want — the caption and its hashtags load instantly', 'Click × to dismiss the picker and return to manual editing'] },
+          { type: 'tip', text: 'Hashtags from the chosen variant are merged into the hashtag field automatically — no copy-pasting needed.' },
         ],
       },
       {
         title: 'Using Post Templates',
         content: [
-          { type: 'steps', items: ['In the composer, click the Templates button above the caption field', 'Select a saved template to load its caption and hashtags', 'Edit as needed, then save or schedule the post'] },
+          { type: 'steps', items: ['In the composer, click the Templates button above the caption field', 'Select a saved template to load its caption and hashtags', 'Click × in the top-right of the popup to close it without selecting', 'Edit as needed, then save or schedule the post'] },
           { type: 'heading', text: 'Saving a new template' },
           { type: 'steps', items: ['Write your caption in the composer', 'Click "Save as Template" next to the Templates button', 'Enter a template name and click Save'] },
         ],
@@ -225,7 +233,7 @@ const SECTIONS: Section[] = [
       {
         title: 'Caption Generator',
         content: [
-          { type: 'steps', items: ['Go to AI Studio → Caption Generator', 'Select client, platform, and tone', 'Enter a brief topic or key message', 'Click Generate — get 3 caption variations', 'Click Use on any caption to load it directly into the Content Composer'] },
+          { type: 'steps', items: ['Go to AI Studio → Caption Generator', 'Select client, platform, and tone', 'Enter a brief topic or key message', 'Click Generate — get 5 caption variations', 'Click Use on any caption to load it directly into the Content Composer'] },
         ],
       },
       {
@@ -314,6 +322,7 @@ const SECTIONS: Section[] = [
         role: 'Owner · Account Manager · SEO Analyst',
         content: [
           { type: 'steps', items: ['Go to Clients → open a client', 'Click New Audit in the Audits section', 'Select the audit type (Social Media, GMB, Website, etc.)', 'The system generates a checklist of items to review', 'Work through each check — mark Pass, Fail, or N/A', 'Add notes to any item for client-facing context'] },
+          { type: 'tip', text: 'A new audit shows "Not Started" (grey) on the list — this is not an automated scan, it just means no checks have been reviewed yet. Once you mark any check, the label changes to "In Progress" (blue). Click "Mark Complete" when all checks are done.' },
         ],
       },
       {
