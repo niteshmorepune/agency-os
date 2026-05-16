@@ -217,8 +217,8 @@ const SECTIONS: Section[] = [
       {
         title: 'What is AI Studio?',
         content: [
-          { type: 'para', text: 'AI Studio is a collection of 10 Claude-powered tools for generating content, researching audiences, auditing profiles, and producing reports. Each tool is purpose-built for a specific agency task.' },
-          { type: 'steps', items: ['Caption Generator — write platform-optimised captions in seconds', 'Hashtag Research — ranked hashtags with volume estimates', 'Profile Bio Writer — character-count-aware bios for any platform', 'Audit Report Writer — full narrative audit reports from checklist results', 'Content Repurposer — transform one piece of content into 5 platform formats', 'Audience Persona Builder — detailed audience persona with psychographics and messaging', 'Competitor Analyzer — side-by-side profile gap analysis vs. a competitor URL', 'Posting Time Optimizer — evidence-based optimal posting schedule grid by platform and location', 'Engagement Rate Analyzer — calculate, benchmark, and get AI recommendations to improve engagement', 'Viewing AI usage — track token spend per tool'] },
+          { type: 'para', text: 'AI Studio is a collection of 11 Claude-powered tools for generating content, researching audiences, auditing profiles, and producing reports. Each tool is purpose-built for a specific agency task.' },
+          { type: 'steps', items: ['Caption Generator — write platform-optimised captions in seconds', 'Hashtag Research — ranked hashtags with volume estimates', 'Profile Bio Writer — character-count-aware bios for any platform', 'Audit Report Writer — full narrative audit reports from checklist results', 'Content Repurposer — transform one piece of content into 5 platform formats', 'Audience Persona Builder — detailed audience persona with psychographics and messaging', 'Competitor Analyzer — side-by-side profile gap analysis vs. a competitor URL', 'Posting Time Optimizer — evidence-based optimal posting schedule grid by platform and location', 'Engagement Rate Analyzer — calculate, benchmark, and get AI recommendations to improve engagement', 'AI Search Visibility Audit — score how visible a client is in ChatGPT, Perplexity & Google AI Overviews', 'Viewing AI usage — track token spend per tool'] },
           { type: 'tip', text: 'AI Studio tracks token usage per tool. Owners can view total spend on the AI Usage page (top-right link in AI Studio).' },
         ],
       },
@@ -283,6 +283,15 @@ const SECTIONS: Section[] = [
           { type: 'para', text: 'Calculate an account\'s engagement rate, benchmark it against industry standards, and receive AI-powered recommendations to improve it.' },
           { type: 'steps', items: ['Go to AI Studio → Engagement Rate Analyzer', 'Select a platform (Instagram, LinkedIn, Facebook, Twitter, TikTok, YouTube, Pinterest)', 'Enter followers, average likes per post (required), and optionally: average comments, shares/saves, and average reach', 'Add industry (e.g. Fashion, SaaS, Restaurant) for more accurate benchmarks', 'Click Analyze Engagement', 'See your engagement rate % with a rating (Excellent / Good / Average / Below Average / Poor)', 'View benchmarks: Poor / Average / Good thresholds for that platform', 'See your percentile — "Better than X% of accounts in your industry"', 'AI recommendations appear as cards with Impact and Effort ratings'] },
           { type: 'tip', text: 'Results are cached — re-running with the same inputs instantly returns the previous result. Change any input to force a fresh analysis.' },
+        ],
+      },
+      {
+        title: 'AI Search Visibility Audit',
+        content: [
+          { type: 'para', text: 'Score how visible a client\'s brand is in AI-powered search engines — ChatGPT Search, Perplexity, and Google AI Overviews. This is GEO (Generative Engine Optimization): the new SEO.' },
+          { type: 'steps', items: ['Go to AI Studio → AI Search Visibility Audit', 'Select a client (optional — adds brand context)', 'Enter: Brand Name, Website, Industry, Location, Key Services, and Target Keywords', 'Click "Run AI Visibility Audit"', 'See an overall score out of 100 with a rating (Excellent / Good / Average / Below Average / Poor)', 'View 6 dimension scores with progress bars: Structured Data & Schema, E-E-A-T Signals, Content Depth & FAQs, Citation & Mention Quality, Knowledge Panel Readiness, Review & Reputation Signals', 'Read 4 Quick Wins — low-effort actions with high return', 'Read 3 Long-Term Strategies — high-impact actions that take more investment'] },
+          { type: 'tip', text: 'Results are cached for 3 days. Tick "Skip cache" after making changes to the client\'s digital presence to get a fresh audit.' },
+          { type: 'note', text: 'The audit is based on AI analysis of the information you provide — it does not crawl the website live. Provide accurate details for the most relevant recommendations.' },
         ],
       },
       {

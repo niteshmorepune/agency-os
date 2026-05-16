@@ -99,8 +99,8 @@ const GUIDE_HTML = `<!DOCTYPE html>
   <div class="toc-section">3. Content Studio</div>
   <div class="toc-article">Creating posts · Templates · Hashtag sets · Media library · Post approval workflow · Content Calendar · Ideas Engine</div>
 
-  <div class="toc-section">4. AI Studio (10 Tools)</div>
-  <div class="toc-article">Caption Generator · Hashtag Research · Profile Bio Writer · Audit Report Writer · Content Repurposer · Audience Persona Builder · Competitor Analyzer · Posting Time Optimizer · Engagement Rate Analyzer · AI Usage</div>
+  <div class="toc-section">4. AI Studio (11 Tools)</div>
+  <div class="toc-article">Caption Generator · Hashtag Research · Profile Bio Writer · Audit Report Writer · Content Repurposer · Audience Persona Builder · Competitor Analyzer · Posting Time Optimizer · Engagement Rate Analyzer · AI Search Visibility Audit · AI Usage</div>
 
   <div class="toc-section">5. Audit Module</div>
   <div class="toc-article">Running audits · Completing and sharing audits</div>
@@ -354,7 +354,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
   <div class="section-icon" style="background:#ede9fe;color:#7c3aed;">🤖</div>
   <div>
     <div class="section-title">4. AI Studio</div>
-    <div class="section-count">10 tools</div>
+    <div class="section-count">11 tools</div>
   </div>
 </div>
 
@@ -460,6 +460,23 @@ const GUIDE_HTML = `<!DOCTYPE html>
     <li><span class="step-num">7</span><span class="step-text">AI recommendations appear as cards with <strong>Impact</strong> and <strong>Effort</strong> ratings</span></li>
   </ol>
   <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">Results are cached — re-running with the same inputs returns instantly. Change any input to force a fresh analysis.</span></div>
+</div>
+
+<div class="article">
+  <div class="article-title">AI Search Visibility Audit</div>
+  <p class="para">Score a client's visibility in AI-powered search engines — ChatGPT Search, Perplexity, and Google AI Overviews. GEO (Generative Engine Optimization) is the new SEO.</p>
+  <ol class="steps">
+    <li><span class="step-num">1</span><span class="step-text">Go to <strong>AI Studio → AI Search Visibility Audit</strong></span></li>
+    <li><span class="step-num">2</span><span class="step-text">Select a client (optional — adds brand context automatically)</span></li>
+    <li><span class="step-num">3</span><span class="step-text">Enter: Brand Name, Website, Industry, Location, Key Services, and Target Keywords</span></li>
+    <li><span class="step-num">4</span><span class="step-text">Click <strong>"Run AI Visibility Audit"</strong></span></li>
+    <li><span class="step-num">5</span><span class="step-text">See an overall score out of 100 with a rating: Excellent / Good / Average / Below Average / Poor</span></li>
+    <li><span class="step-num">6</span><span class="step-text">View 6 dimension scores with progress bars: Structured Data &amp; Schema · E-E-A-T Signals · Content Depth &amp; FAQs · Citation &amp; Mention Quality · Knowledge Panel Readiness · Review &amp; Reputation Signals</span></li>
+    <li><span class="step-num">7</span><span class="step-text">Read <strong>4 Quick Wins</strong> — low-effort actions with high return</span></li>
+    <li><span class="step-num">8</span><span class="step-text">Read <strong>3 Long-Term Strategies</strong> — high-impact investments for sustained visibility</span></li>
+  </ol>
+  <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">Results are cached for 3 days. Tick "Skip cache" after making changes to the client's digital presence to get a fresh audit.</span></div>
+  <div class="note"><span class="note-label">NOTE</span><span class="note-text">The audit is based on AI analysis of the information you provide — it does not crawl the website live. Provide accurate details for the most relevant recommendations.</span></div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
