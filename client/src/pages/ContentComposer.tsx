@@ -56,6 +56,21 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+interface CaptionVariant { caption: string; hashtags: string[] }
+
+function parseVariants(raw: string): CaptionVariant[] {
+  return raw.trim()
+    .split(/\n(?=\d+\.\n)/)
+    .map(block => {
+      const body = block.replace(/^\d+\.\n/, '').trim();
+      const hashMatch = body.match(/\nHashtags:\s*(.+)$/m);
+      const hashtags = hashMatch ? (hashMatch[1].match(/#[\w]+/g) ?? []).map(t => t.slice(1)) : [];
+      const caption = body.replace(/\nHashtags:.*$/m, '').trim();
+      return { caption, hashtags };
+    })
+    .filter(v => v.caption.length > 0);
+}
+
 export default function ContentComposer() {
   const { postId } = useParams<{ postId?: string }>();
   const navigate = useNavigate();
@@ -73,6 +88,7 @@ export default function ContentComposer() {
   const [templateName, setTemplateName] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
+  const [aiVariants, setAiVariants] = useState<CaptionVariant[] | null>(null);
 
   const { register, handleSubmit, control, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -183,29 +199,32 @@ export default function ContentComposer() {
   };
 
   const generateCaption = async () => {
-    if (!selectedClientId) {
-      toast.error('Select a client first to generate a caption');
-      return;
-    }
-    if (!caption) {
-      toast.error('Enter a topic or brief in the caption field first');
-      return;
-    }
+    if (!selectedClientId) { toast.error('Select a client first to generate a caption'); return; }
+    if (!caption) { toast.error('Enter a topic or brief in the caption field first'); return; }
     setAiLoading(true);
     setAiError('');
     try {
       const platform = selectedPlatforms[0] ?? 'LinkedIn';
-      const res = await api.post<{ data: string }>('/ai/caption', {
-        topic: caption,
-        platform,
-        clientId: selectedClientId,
-      });
-      setValue('caption', res.data, { shouldDirty: true });
+      const res = await api.post<{ data: string }>('/ai/caption', { topic: caption, platform, clientId: selectedClientId });
+      const variants = parseVariants(res.data);
+      if (variants.length > 0) {
+        setAiVariants(variants);
+      } else {
+        setValue('caption', res.data, { shouldDirty: true });
+      }
     } catch {
       setAiError('AI generation failed. Try again.');
     } finally {
       setAiLoading(false);
     }
+  };
+
+  const selectVariant = (v: CaptionVariant) => {
+    setValue('caption', v.caption, { shouldDirty: true });
+    if (v.hashtags.length > 0) {
+      setHashtags(prev => [...prev, ...v.hashtags.filter(t => !prev.includes(t))]);
+    }
+    setAiVariants(null);
   };
 
   const addHashtag = (val: string) => {
@@ -388,11 +407,52 @@ export default function ContentComposer() {
               </button>
             </div>
           </div>
-          <textarea
-            className={`input min-h-[280px] resize-y ${errors.caption || overLimit ? 'border-red-300' : ''}`}
-            placeholder="Write your caption here, or click AI Generate to create one..."
-            {...register('caption')}
-          />
+          {aiVariants ? (
+            <div className="border border-violet-200 rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 bg-violet-50 border-b border-violet-100">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={14} className="text-violet-600" />
+                  <span className="text-sm font-semibold text-violet-700">Pick a variant</span>
+                  <span className="text-xs text-violet-400">{aiVariants.length} options — click one to use it</span>
+                </div>
+                <button type="button" onClick={() => setAiVariants(null)} className="text-violet-400 hover:text-violet-700 transition-colors" title="Dismiss">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="divide-y divide-gray-100 max-h-[480px] overflow-y-auto">
+                {aiVariants.map((v, i) => (
+                  <div key={i} className="p-4 hover:bg-gray-50 transition-colors group">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-xs font-bold text-violet-600 bg-violet-50 border border-violet-100 px-2 py-0.5 rounded-full">
+                            Variant {i + 1}
+                          </span>
+                          {v.hashtags.length > 0 && (
+                            <span className="text-xs text-gray-400">{v.hashtags.length} hashtags included</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-700 leading-relaxed line-clamp-3">{v.caption}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => selectVariant(v)}
+                        className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-colors opacity-80 group-hover:opacity-100"
+                      >
+                        Use this
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <textarea
+              className={`input min-h-[280px] resize-y ${errors.caption || overLimit ? 'border-red-300' : ''}`}
+              placeholder="Write your caption here, or click AI Generate to create one..."
+              {...register('caption')}
+            />
+          )}
           {aiError && <p className="text-red-500 text-xs mt-1">{aiError}</p>}
           {errors.caption && <p className="text-red-500 text-xs mt-1">{errors.caption.message}</p>}
         </div>
