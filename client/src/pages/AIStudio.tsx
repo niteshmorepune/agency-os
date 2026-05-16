@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Bot, Sparkles, Copy, RefreshCw, Check, BarChart2, ChevronLeft, Database, Clock, TrendingUp } from 'lucide-react';
+import { Bot, Sparkles, Copy, RefreshCw, Check, BarChart2, ChevronLeft, Database, Clock, TrendingUp, Search } from 'lucide-react';
 import { api } from '../api/client';
 import { SafeAIOutput } from '../lib/safeAI';
 
@@ -218,11 +218,21 @@ const TOOLS: Tool[] = [
     fields: [],
     customPage: '/ai-studio/engagement',
   },
+  {
+    id: 'search-visibility',
+    category: 'Research',
+    name: 'AI Search Visibility Audit',
+    description: 'Score your client\'s visibility in ChatGPT, Perplexity & Google AI Overviews with GEO recommendations',
+    endpoint: '/ai/search-visibility',
+    fields: [],
+    customPage: '/ai-studio/search-visibility',
+  },
 ];
 
 const TOOL_ICON: Record<string, React.ReactNode> = {
   'posting-times': <Clock size={18} className="text-primary-700" />,
   'engagement': <TrendingUp size={18} className="text-primary-700" />,
+  'search-visibility': <Search size={18} className="text-primary-700" />,
 };
 
 function ToolCard({ tool, onClick }: { tool: Tool; onClick: () => void }) {
@@ -452,7 +462,7 @@ export default function AIStudio() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">AI Studio</h1>
-          <p className="text-gray-500 mt-1">Powered by Claude — {TOOLS.length} tools for platform-optimized content.</p>
+          <p className="text-gray-500 mt-1">Powered by Claude — {TOOLS.length} tools for platform-optimized content and AI search visibility.</p>
         </div>
         <Link to="/ai-studio/usage" className="btn-secondary text-sm flex items-center gap-2 flex-shrink-0">
           <BarChart2 size={16} />

@@ -4,6 +4,7 @@ import { runAITool } from '../services/ai/client';
 import { prisma } from '../lib/prisma';
 import { getPostingSchedule } from '../services/postingTimes';
 import { getBenchmark, calculateEngagementRate, getRating, getPercentile } from '../services/engagementBenchmarks';
+import { getSearchVisibilityAudit } from '../services/ai/searchVisibility';
 
 const SYSTEM_BASE = `You are an expert digital marketing strategist for a premium agency. You have deep expertise in all major social platforms, SEO, paid ads, email marketing, and content strategy. Always output structured, actionable content. Never use filler phrases. Be specific and platform-aware.`;
 
@@ -327,6 +328,35 @@ export async function engagementAnalyzer(req: Request, res: Response): Promise<v
   }
 
   res.json({ data: result });
+}
+
+export async function searchVisibilityAudit(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    brandName: z.string().min(1),
+    website: z.string().min(1),
+    industry: z.string().min(1),
+    location: z.string().min(1),
+    keyServices: z.string().min(1),
+    targetKeywords: z.string().min(1),
+    clientId: z.string().optional(),
+    forceRefresh: z.boolean().optional(),
+  });
+  const { brandName, website, industry, location, keyServices, targetKeywords, clientId, forceRefresh } = schema.parse(req.body);
+
+  const result = await getSearchVisibilityAudit({
+    brandName,
+    website,
+    industry,
+    location,
+    keyServices,
+    targetKeywords,
+    user: req.user!,
+    clientId,
+    forceRefresh,
+  });
+
+  const cleaned = result.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  res.json({ data: JSON.parse(cleaned) });
 }
 
 export async function getAIUsage(req: Request, res: Response): Promise<void> {

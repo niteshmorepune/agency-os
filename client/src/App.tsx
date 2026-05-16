@@ -33,6 +33,7 @@ import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 import PostingTimeOptimizer from './pages/PostingTimeOptimizer';
 import EngagementAnalyzer from './pages/EngagementAnalyzer';
+import SearchVisibility from './pages/SearchVisibility';
 import OnboardingForm from './pages/OnboardingForm';
 
 const Spinner = () => (
@@ -93,6 +94,7 @@ export default function App() {
         <Route path="/ai-studio/usage" element={<ProtectedRoute><AIUsage /></ProtectedRoute>} />
         <Route path="/ai-studio/posting-times" element={<ProtectedRoute><PostingTimeOptimizer /></ProtectedRoute>} />
         <Route path="/ai-studio/engagement" element={<ProtectedRoute><EngagementAnalyzer /></ProtectedRoute>} />
+        <Route path="/ai-studio/search-visibility" element={<ProtectedRoute><SearchVisibility /></ProtectedRoute>} />
         <Route path="/ai-studio/:toolId" element={<ProtectedRoute><AIStudio /></ProtectedRoute>} />
         <Route path="/onboarding/:token" element={<OnboardingForm />} />
         <Route path="/audit/:clientId" element={<ProtectedRoute><AuditList /></ProtectedRoute>} />
