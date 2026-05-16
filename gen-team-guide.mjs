@@ -109,7 +109,7 @@ const HTML = `<!DOCTYPE html>
   <div class="cover-divider"></div>
   <div class="cover-title">Team Playbook</div>
   <div class="cover-desc">Everything your team needs to run the platform confidently — roles, workflows, AI tools, client management, and the monthly operating rhythm.</div>
-  <div class="cover-footer">Version 3 · May 2026 · Confidential — Internal Use Only</div>
+  <div class="cover-footer">Version 4 · May 2026 · Confidential — Internal Use Only</div>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -282,7 +282,7 @@ const HTML = `<!DOCTYPE html>
     <div class="steps">
       <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Select client</strong> — required before generating captions or adding media</div></div>
       <div class="step"><div class="step-num">2</div><div class="step-text"><strong>Select platforms</strong> — character limit shown automatically per platform combination</div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Write caption</strong> — or type a topic and click <strong>AI Generate</strong> (requires client + topic text). Output is 5 numbered variants — pick and edit the one you want.</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Write caption</strong> — or type a brief topic and click <strong>AI Generate</strong> (client must be selected first). A <strong>variant picker</strong> appears showing 5 cards — click <strong>"Use this"</strong> on the one you want. The caption and its hashtags load instantly. Click × to dismiss and write manually.</div></div>
       <div class="step"><div class="step-num">4</div><div class="step-text"><strong>Add hashtags</strong> — type and press Enter, or load from a saved set</div></div>
       <div class="step"><div class="step-num">5</div><div class="step-text"><strong>Add media</strong> — pick from the client's media library (upload images/videos there first)</div></div>
       <div class="step"><div class="step-num">6</div><div class="step-text"><strong>Set schedule date &amp; time</strong> — if filled, clicking either Save button automatically sets status to Scheduled</div></div>
@@ -309,7 +309,7 @@ const HTML = `<!DOCTYPE html>
     <p>Go to <strong>Content → Calendar</strong> to see all scheduled posts in a monthly grid. Click any post chip to jump straight to editing.</p>
   </div>
 
-  <div class="tip"><strong>Templates:</strong> In the composer, click the Templates button next to the Caption label to load a saved template, or save the current caption as a new template for reuse.</div>
+  <div class="tip"><strong>Templates:</strong> In the composer, click the Templates button next to the Caption label to load a saved template, or save the current caption as a new template for reuse. Click × in the top-right of the popup to close it without selecting.</div>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -461,6 +461,7 @@ const HTML = `<!DOCTYPE html>
       <div class="step"><div class="step-num">4</div><div class="step-text">Click <strong>Mark Complete</strong> — the audit is locked and a score is calculated</div></div>
       <div class="step"><div class="step-num">5</div><div class="step-text">Download the branded PDF report from the audit detail page</div></div>
     </div>
+    <div class="tip"><strong>Status labels:</strong> A freshly created audit shows <strong>"Not Started"</strong> (grey) on the audit list — this is not an automated scan. Once you mark any check, it changes to <strong>"In Progress"</strong> (blue). It becomes <strong>"Completed"</strong> (green) only after you click Mark Complete.</div>
   </div>
 
   <div class="block">
@@ -620,7 +621,7 @@ const HTML = `<!DOCTYPE html>
 
   <div class="warn"><strong>Monthly report emails</strong> fire automatically on the 1st of each month for clients with a schedule set. Verify the schedule is configured in Client → Reports for every retainer client.</div>
 
-  <div class="footer-note">NEDS Drishti Team Playbook · Version 3 · May 2026 · Confidential — Internal Use Only · nedsdrishti.in</div>
+  <div class="footer-note">NEDS Drishti Team Playbook · Version 4 · May 2026 · Confidential — Internal Use Only · nedsdrishti.in</div>
 </div>
 
 </body>
