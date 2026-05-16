@@ -57,6 +57,7 @@ router.post('/', asyncHandler(async (req, res) => {
       altTexts: data.altTexts ?? [],
       platformOverrides: data.platformOverrides,
       scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
+      status: data.scheduledAt ? 'SCHEDULED' : 'DRAFT',
       notes: sanitize(data.notes ?? ''),
       aiGenerated: data.aiGenerated ?? false,
     },
@@ -81,6 +82,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
       caption: data.caption ? sanitize(data.caption) : undefined,
       notes: data.notes !== undefined ? sanitize(data.notes) : undefined,
       scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : data.scheduledAt === null ? null : undefined,
+      ...(data.scheduledAt !== undefined && { status: data.scheduledAt ? 'SCHEDULED' : 'DRAFT' }),
       platforms: data.platforms as never,
     },
   });

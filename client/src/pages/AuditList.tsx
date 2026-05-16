@@ -32,9 +32,17 @@ function scoreColor(score: number | null) {
   return 'text-red-500';
 }
 
-function StatusIcon({ status }: { status: string }) {
+function statusMeta(status: string, overallScore: number | null) {
+  if (status === 'COMPLETED') return { label: 'Completed', cls: 'bg-green-100 text-green-700' };
+  if (status === 'ARCHIVED')  return { label: 'Archived',  cls: 'bg-gray-100 text-gray-500' };
+  if (overallScore === null)  return { label: 'Not Started', cls: 'bg-gray-100 text-gray-600' };
+  return { label: 'In Progress', cls: 'bg-blue-100 text-blue-700' };
+}
+
+function StatusIcon({ status, overallScore }: { status: string; overallScore: number | null }) {
   if (status === 'COMPLETED') return <CheckCircle size={16} className="text-green-500" />;
-  if (status === 'ARCHIVED') return <Archive size={16} className="text-gray-400" />;
+  if (status === 'ARCHIVED')  return <Archive size={16} className="text-gray-400" />;
+  if (overallScore === null)  return <Clock size={16} className="text-gray-400" />;
   return <Clock size={16} className="text-blue-500" />;
 }
 
@@ -129,14 +137,14 @@ export default function AuditList() {
           {audits.map(audit => (
             <div key={audit.id} className="card p-5 flex items-center gap-4 hover:shadow-sm transition-shadow">
               <div className="flex-shrink-0">
-                <StatusIcon status={audit.status} />
+                <StatusIcon status={audit.status} overallScore={audit.overallScore} />
               </div>
               <Link to={`/audit/${clientId}/${audit.id}`} className="flex-1 min-w-0 group">
                 <div className="flex items-center gap-3">
                   <h3 className="font-semibold text-gray-900 group-hover:text-primary-700 transition-colors truncate">{audit.name}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${audit.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : audit.status === 'ARCHIVED' ? 'bg-gray-100 text-gray-500' : 'bg-blue-100 text-blue-700'}`}>
-                    {audit.status.replace('_', ' ')}
-                  </span>
+                  {(() => { const m = statusMeta(audit.status, audit.overallScore); return (
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${m.cls}`}>{m.label}</span>
+                  ); })()}
                 </div>
                 <p className="text-sm text-gray-500 mt-0.5">
                   {audit._count.checks} checks · Last updated {new Date(audit.updatedAt).toLocaleDateString('en-IN')}

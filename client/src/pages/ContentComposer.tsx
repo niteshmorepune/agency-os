@@ -329,8 +329,11 @@ export default function ContentComposer() {
                 </button>
                 {showTemplatePicker && (
                   <div className="absolute top-full left-0 mt-1 w-72 bg-white rounded-xl shadow-xl border border-gray-100 z-20 overflow-hidden">
-                    <div className="px-3 py-2 border-b border-gray-100">
+                    <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
                       <p className="text-xs font-semibold text-gray-600">Pick a template</p>
+                      <button type="button" onClick={() => setShowTemplatePicker(false)} className="text-gray-400 hover:text-gray-700 transition-colors">
+                        <X size={14} />
+                      </button>
                     </div>
                     <div className="max-h-52 overflow-y-auto">
                       {(templatesData?.data ?? []).length === 0 ? (
@@ -386,7 +389,7 @@ export default function ContentComposer() {
             </div>
           </div>
           <textarea
-            className={`input min-h-[120px] resize-none ${errors.caption || overLimit ? 'border-red-300' : ''}`}
+            className={`input min-h-[280px] resize-y ${errors.caption || overLimit ? 'border-red-300' : ''}`}
             placeholder="Write your caption here, or click AI Generate to create one..."
             {...register('caption')}
           />
