@@ -1,5 +1,5 @@
 export const TOKEN_BUDGETS: Record<string, number> = {
-  caption: 400,
+  caption: 1500,
   hashtag: 300,
   bio: 1500,
   subject_line: 200,
