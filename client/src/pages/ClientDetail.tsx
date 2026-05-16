@@ -570,7 +570,7 @@ function ActionItemsTab({ clientId }: { clientId: string }) {
       await api.post(`/clients/${clientId}/action-items`, {
         title: title.trim(),
         description: description.trim() || undefined,
-        dueDate: dueDate || undefined,
+        dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
       });
       qc.invalidateQueries({ queryKey: ['action-items', clientId] });
       setTitle(''); setDescription(''); setDueDate('');

@@ -165,7 +165,8 @@ export async function sendOnboardingEmail(params: {
   } catch {
     return;
   }
-  const url = `${process.env.APP_URL ?? 'https://nedsdrishti.in'}/onboarding/${params.token}`;
+  const baseUrl = (process.env.APP_URL ?? 'https://nedsdrishti.in').replace(/\/$/, '');
+  const url = `${baseUrl}/onboarding/${params.token}`;
   await transport.sendMail({
     from: `"${agencyName}" <${fromEmail}>`,
     to: params.contactEmail,

@@ -170,27 +170,35 @@ export default function ContentComposer() {
   };
 
   const onSubmit = (values: FormValues, asDraft = true) => {
+    const hasSchedule = !!(values.scheduledAt && new Date(values.scheduledAt) > new Date());
     const payload: Record<string, unknown> = {
       ...values,
       hashtags,
       mediaUrls,
       scheduledAt: values.scheduledAt ? new Date(values.scheduledAt).toISOString() : null,
-      status: asDraft ? 'DRAFT' : 'SCHEDULED',
+      status: (asDraft && !hasSchedule) ? 'DRAFT' : 'SCHEDULED',
     };
     if (isEdit) updateMutation.mutate(payload);
     else createMutation.mutate(payload);
   };
 
   const generateCaption = async () => {
-    if (!caption && !selectedClientId) return;
+    if (!selectedClientId) {
+      toast.error('Select a client first to generate a caption');
+      return;
+    }
+    if (!caption) {
+      toast.error('Enter a topic or brief in the caption field first');
+      return;
+    }
     setAiLoading(true);
     setAiError('');
     try {
       const platform = selectedPlatforms[0] ?? 'LinkedIn';
       const res = await api.post<{ data: string }>('/ai/caption', {
-        topic: caption || 'Generate a compelling social media caption',
+        topic: caption,
         platform,
-        clientId: selectedClientId || undefined,
+        clientId: selectedClientId,
       });
       setValue('caption', res.data, { shouldDirty: true });
     } catch {

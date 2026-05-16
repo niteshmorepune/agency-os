@@ -22,7 +22,7 @@ export async function captionGenerator(req: Request, res: Response): Promise<voi
   const { result, cached } = await runAITool({
     toolId: 'caption',
     systemPrompt: SYSTEM_BASE,
-    userPrompt: `Generate 5 ${platform} caption variants for this topic: "${topic}"\nTone: ${tone ?? 'professional'}\nCTA goal: ${cta ?? 'engagement'}\n\nFor each variant: label it (1-5), write the caption, add a hashtag set of 5-8 hashtags. Format clearly.`,
+    userPrompt: `Generate 5 ${platform} caption variants for this topic: "${topic}"\nTone: ${tone ?? 'professional'}\nCTA goal: ${cta ?? 'engagement'}\n\nUse this exact plain-text format for all 5 variants — no markdown headers, no HTML:\n\n1.\n[caption text here]\nHashtags: #tag1 #tag2 #tag3 #tag4 #tag5\n\n2.\n[caption text here]\nHashtags: #tag1 #tag2 #tag3 #tag4 #tag5\n\n...and so on through 5.`,
     inputs: { topic, platform, tone: tone ?? '', cta: cta ?? '' },
     user: req.user!,
     clientId,
