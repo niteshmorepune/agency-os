@@ -30,6 +30,15 @@ const SECTIONS: Section[] = [
     color: 'text-blue-600 bg-blue-50',
     articles: [
       {
+        title: 'First-login onboarding for new team members',
+        content: [
+          { type: 'para', text: 'When a team member logs in for the very first time, a 4-step onboarding modal appears to walk them through the platform before they start work.' },
+          { type: 'steps', items: ['Step 1 — Welcome to the Team: an overview of what the platform is for', 'Step 2 — Content Studio: how the Draft → Approval → Published workflow works', 'Step 3 — Client Workspace: where to find clients, action items, goals, and messages', 'Step 4 — Action Items & Dashboard: what to check every morning and how to use the + button'] },
+          { type: 'tip', text: 'Click "Get Started" on the last step or use "Skip onboarding" at any time. The modal will not show again once dismissed.' },
+          { type: 'note', text: 'The onboarding modal only shows on the first login. If someone needs to see it again, ask the Owner to reset their account from Settings → Team.' },
+        ],
+      },
+      {
         title: 'How to log in',
         content: [
           { type: 'steps', items: ['Go to nedsdrishti.in', 'Enter your email and password', 'Click Sign In — you\'ll land on your Dashboard'] },
@@ -57,8 +66,9 @@ const SECTIONS: Section[] = [
         title: 'Navigating the app',
         content: [
           { type: 'para', text: 'The sidebar on the left is your main navigation. Click the hamburger icon (☰) in the top-left to expand or collapse it.' },
-          { type: 'steps', items: ['Dashboard — agency-wide stats at a glance', 'Clients — manage all client accounts', 'AI Studio — 10 AI-powered tools for content, research, and audits', 'Content — compose, schedule, and manage posts', 'Analytics — reports, performance graphs, and AI digest', 'Optimize — platform-by-platform SEO checklists with AI rewrite', 'Invoices — create and manage client invoices (Owner · Account Manager)', 'Activity — full audit trail of team actions (Owner only)', 'Settings — branding, API keys, team, webhooks (Owner only)', 'Help & Guide — this page'] },
+          { type: 'steps', items: ['Dashboard — agency-wide stats at a glance', 'Clients — manage all client accounts, goals, messages, and action items', 'AI Studio — 11 AI-powered tools for content, research, and audits', 'Content — compose, schedule, and manage posts', 'Analytics — reports, performance graphs, and AI digest', 'Optimize — platform-by-platform SEO checklists with AI rewrite', 'Invoices — create and manage client invoices (Owner · Account Manager)', 'Activity — full audit trail of team actions (Owner · Account Manager)', 'Workload — see tasks across all team members (Owner only)', 'Settings — branding, API keys, team, webhooks (Owner only)', 'Help & Guide — this page'] },
           { type: 'tip', text: 'Click your name at the bottom of the sidebar at any time to open your Profile page and update your details or password.' },
+          { type: 'note', text: 'The Sun/Moon icon in the top header bar switches between light and dark mode. Your preference is saved automatically.' },
         ],
       },
     ],
@@ -129,6 +139,17 @@ const SECTIONS: Section[] = [
           { type: 'steps', items: ['Agency side: Open the client → click the Messages tab', 'Type a message in the text box at the bottom and click Send (or press Enter)', 'The message thread refreshes every 30 seconds automatically', 'The client receives an email notification when a new message arrives', 'Client side: open their portal → scroll to the Messages section at the bottom'] },
           { type: 'tip', text: 'Use Shift+Enter to add a line break without sending the message.' },
           { type: 'note', text: 'Messages are sent per-client — they are not a shared team chat. Only agency members assigned to the client and the client themselves can see the thread.' },
+        ],
+      },
+      {
+        title: 'Setting monthly goals for a client',
+        role: 'Owner · Account Manager',
+        content: [
+          { type: 'para', text: 'Monthly Goals let you set measurable targets for each client — follower growth, post count, engagement rate, leads generated, etc. The client can see their progress in their portal.' },
+          { type: 'steps', items: ['Open the client → click the Goals tab', 'Select the month using the month selector at the top (defaults to current month)', 'Click "Add Goal" → enter a Title (e.g. "Instagram Followers"), Target Value (e.g. 5000), Current Value (how many they have now), and Unit (e.g. followers, posts, %)', 'Click Save — the goal appears as a progress bar instantly', 'Update current value as the month progresses: click the pencil icon on any goal → update Current Value → Save', 'Archive a goal you no longer need: click the archive icon — it disappears from the active view'] },
+          { type: 'heading', text: 'Progress bar colours' },
+          { type: 'steps', items: ['Green — at or above 100% of target (goal achieved)', 'Blue — 60–99% (on track)', 'Yellow — 30–59% (needs attention)', 'Grey — below 30% (behind)'] },
+          { type: 'tip', text: 'Use the month selector to view goals from previous months — useful for quarterly reviews with clients.' },
         ],
       },
       {
@@ -400,12 +421,22 @@ const SECTIONS: Section[] = [
         ],
       },
       {
-        title: 'AI Weekly Digest',
+        title: 'AI Weekly Digest (agency summary)',
         role: 'Owner',
         content: [
           { type: 'para', text: 'The AI Weekly Digest gives you an instant AI-written summary of your agency\'s activity — clients, posts, audits, invoices, and top scores.' },
           { type: 'steps', items: ['Go to Analytics → scroll to the "AI Weekly Digest" card', 'Click "Generate Digest" — Claude analyses all agency data and writes a narrative summary', 'Read the digest in-app, or click "Email Digest" to send it to the Owner\'s registered email'] },
           { type: 'note', text: 'Generating a digest consumes AI tokens. It is not rate-limited, but use it thoughtfully.' },
+        ],
+      },
+      {
+        title: 'Sending per-client weekly digests to clients',
+        role: 'Owner',
+        content: [
+          { type: 'para', text: 'Send each active client an individual AI-written weekly update by email — showing what was published, completed, and what\'s coming next. This goes to each client\'s contact email, not their login email.' },
+          { type: 'steps', items: ['Go to Settings → scroll to the "Client Digest" card', 'Click "Send Client Digests Now"', 'The system loops all active clients that have a contact email set', 'For each client it counts: posts published this week, audits completed, action items done', 'Claude generates personalised highlights and next steps for each client', 'A branded email is sent to each client\'s contact email', 'A result toast shows how many were sent (e.g. "Sent 4/5 client digests")'] },
+          { type: 'note', text: 'This also runs automatically every Sunday at 8:00 PM IST — you do not need to trigger it manually unless you want to send mid-week.' },
+          { type: 'tip', text: 'Make sure each client has a contact email set in their client record. Clients without a contact email are skipped.' },
         ],
       },
     ],
@@ -516,7 +547,7 @@ const SECTIONS: Section[] = [
         title: 'What clients see in their portal',
         content: [
           { type: 'para', text: 'Clients with a Client role log in and land directly on their portal. They cannot access agency pages like Clients, AI Studio, or Settings.' },
-          { type: 'steps', items: ['Welcome banner — shows agency name, client name, domain, and overall platform score ring', 'Stats row — average platform score, active platforms, approved posts count, action items count', 'Platform Scores — progress bars for each platform that has been audited', 'Latest Audit — score ring and date of the most recent audit', 'Priority Actions — top optimization fixes flagged by the agency', 'Action Required — pending action items assigned by the agency (with due dates)', 'Messages — in-app message thread with the agency team', 'Approved Content — recent posts that have been approved'] },
+          { type: 'steps', items: ['Welcome banner — shows agency name, client name, domain, overall platform score ring, and a "Download Content Pack" button', 'Stats row — average platform score, active platforms, approved posts count, action items count', 'Monthly Goals — progress bars for each goal set by the agency for the current month', 'Platform Scores — progress bars for each platform that has been audited', 'Latest Audit — score ring and date of the most recent audit', 'Priority Actions — top optimization fixes flagged by the agency', 'Action Required — pending action items assigned by the agency (with due dates)', 'Messages — in-app message thread with the agency team', 'Approved Content — recent posts that have been approved'] },
           { type: 'tip', text: 'The portal uses your agency\'s brand colours and logo set in Settings → Branding.' },
         ],
       },
@@ -539,6 +570,22 @@ const SECTIONS: Section[] = [
         content: [
           { type: 'steps', items: ['Log in as a client — scroll to the "Messages" section at the bottom of the portal', 'Type a message in the input box and click Send (or press Enter)', 'Your account manager receives an email notification', 'Their reply appears in the thread — it refreshes every 30 seconds automatically'] },
           { type: 'tip', text: 'Use messages for quick questions, sharing assets, or requesting changes. For formal deliverables use the Action Items system.' },
+        ],
+      },
+      {
+        title: 'Viewing your monthly goals (client view)',
+        content: [
+          { type: 'para', text: 'Your agency sets monthly goals for your account — things like follower targets, post frequency, engagement rate, or lead count. You can see how you\'re tracking against each goal directly in your portal.' },
+          { type: 'steps', items: ['Log in as a client — the Monthly Goals section appears between the stats row and platform scores', 'Each goal shows: the goal title, current value vs. target, and a colour-coded progress bar', 'Green = target achieved, Blue = on track, Yellow = needs attention, Grey = behind'] },
+          { type: 'note', text: 'Goals are updated by your account manager. Contact them if any figures look incorrect.' },
+        ],
+      },
+      {
+        title: 'Downloading your content pack (client view)',
+        content: [
+          { type: 'para', text: 'Download all your approved captions, hashtags, and image links for the current month as a ZIP file — useful for your own records or for passing to an external team.' },
+          { type: 'steps', items: ['Log in as a client — in the welcome banner at the top, click "Download Content Pack"', 'A ZIP file downloads containing:', 'captions.csv — all approved posts with Platform, Caption, Hashtags, and Scheduled Date columns', 'image-urls.txt — direct links to all media files attached to your posts', 'README.txt — a summary of the export and how to use the files'] },
+          { type: 'tip', text: 'The ZIP always reflects the current month\'s approved content. Download again after new posts are approved to get the latest version.' },
         ],
       },
       {
@@ -587,6 +634,14 @@ const SECTIONS: Section[] = [
         content: [
           { type: 'steps', items: ['Go to Settings → My Profile tab, or click your name in the sidebar', 'Scroll to the Change Password section', 'Enter your Current Password (use the eye icon to verify), then your New Password (minimum 8 characters)', 'Confirm the new password and click Save Profile'] },
           { type: 'tip', text: 'If you\'ve forgotten your current password, ask the Agency Owner to reset it for you from Settings → Team.' },
+        ],
+      },
+      {
+        title: 'Switching between dark and light mode',
+        content: [
+          { type: 'para', text: 'The platform supports a dark mode that reduces eye strain in low-light environments. Your preference is saved and restored automatically on every login.' },
+          { type: 'steps', items: ['Look for the Sun or Moon icon in the top header bar (next to the notification bell)', 'Click it once to toggle between light and dark mode — the change applies instantly', 'Your preference is saved in your browser — it persists across page reloads', 'On first visit, the app automatically matches your device\'s system theme (dark or light)'] },
+          { type: 'tip', text: 'You can also find the Appearance toggle on your Profile page under the Account Info section.' },
         ],
       },
     ],

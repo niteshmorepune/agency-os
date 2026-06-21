@@ -57,12 +57,14 @@ Full-stack digital marketing platform. Monorepo: client/ (React+Vite), server/ (
 - Use /model sonnet for implementation (default)
 - Each module should be built in a clean context: finish one, /clear, start next
 
-## Prisma models added (session gap-fill)
+## Prisma models added
 - `ClientActionItem` — per-client action items with status (PENDING/IN_PROGRESS/COMPLETED/CANCELLED), dueDate, createdById
 - `ClientMessage` — in-app messaging between agency and client; senderId/senderRole/senderName stored at write time
 - `OnboardingToken` — UUID token (unique per client, 7-day expiry) for public onboarding questionnaire
+- `ClientGoal` — monthly goals per client (agencyId, clientId, title, targetValue, currentValue, unit, month YYYY-MM, isArchived)
+- `User.teamOnboardingAt DateTime?` — null until team member completes first-login onboarding modal
 
-## New API routes (session gap-fill)
+## New API routes
 - `POST /api/onboarding/:token` / `GET /api/onboarding/:token` — public, no auth, token-based onboarding form
 - `GET|POST /api/clients/:id/action-items` — CRUD for action items; POST fires email to client
 - `PUT /api/clients/action-items/:itemId` — status update (any authenticated role)
@@ -73,11 +75,35 @@ Full-stack digital marketing platform. Monorepo: client/ (React+Vite), server/ (
 - `POST /api/ai/posting-times` — posting schedule grid + optional AI custom advice
 - `POST /api/ai/engagement-analyze` — engagement rate calculator + AI recommendations
 - `POST /api/optimize/:clientId/ai-rewrite` — platform optimizer AI rewrite with 3 variants per checkId
+- `GET|POST /api/clients/:id/goals` — monthly goal CRUD (routes in goals.routes.ts, merged into client.routes.ts)
+- `PUT /api/clients/:id/goals/:goalId` — update goal (OWNER/AM only)
+- `DELETE /api/clients/:id/goals/:goalId` — archive goal (OWNER/AM only)
+- `GET /api/client-portal/goals?month=YYYY-MM` — client's goals for current month (CLIENT auth)
+- `GET /api/client-portal/content/download` — streams ZIP of captions.csv + image-urls.txt + README.txt (CLIENT auth)
+- `POST /api/digest/email-clients` — sends per-client AI weekly digest to all active clients with contactEmail (OWNER only)
+- `POST /api/auth/complete-onboarding` — marks teamOnboardingAt in DB (any auth)
 
-## New AI tools (session gap-fill)
+## New AI tools
 - `posting_time` — deterministic schedule grid from `postingTimes.ts`, optional Claude custom advice
 - `engagement` — benchmark calculator from `engagementBenchmarks.ts`, Claude recs when rating is average/below/poor
 - `platform_rewrite` — per-checkId prompts in `platformRewrite.ts`, returns 3 JSON variants
+- `client_digest` — per-client weekly digest; returns `{"highlights":"...","nextSteps":"..."}` JSON
+
+## Dark mode
+- `tailwind.config.js`: `darkMode: 'class'`
+- `client/src/hooks/useDarkMode.ts`: `useDarkMode()` (init), `toggleDarkMode()` (returns new state), `isDarkMode()` (read)
+- Moon/Sun toggle button in Layout header (every page). Secondary toggle in Profile page.
+- Preference stored in `localStorage` key `darkMode`. Falls back to `prefers-color-scheme`.
+
+## Scheduler (server/src/lib/scheduler.ts)
+- Every 5 min: auto-publish due SCHEDULED posts via publisher.service.ts
+- Daily 03:30 UTC: pending approval digest + overdue action items + overdue invoice alerts
+- 1st of month 02:30 UTC: auto-email monthly PDF reports to clients with `reportSchedule: 'MONTHLY'`
+- Sunday 14:30 UTC: `runWeeklyClientDigests()` — loops all agencies, generates AI digest per client, emails to contactEmail
+
+## Content ZIP (archiver package)
+- Use `new ZipArchive({ zlib: { level: 6 } })` NOT `archiver('zip', ...)` — the default export is not callable in TypeScript
+- Import: `import { ZipArchive } from 'archiver'`
 
 ## What to do when stuck
 1. Check shared/types.ts for interfaces before creating new ones
