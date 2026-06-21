@@ -1,7 +1,7 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, NavLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutDashboard, Users, BarChart3, Zap, PenSquare, Settings, LogOut, Menu, X, ChevronRight, Bot, BookOpen, Receipt, Activity, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Users, BarChart3, Zap, PenSquare, Settings, LogOut, Menu, X, ChevronRight, Bot, BookOpen, Receipt, Activity, Briefcase, Moon, Sun } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
 import { useUIStore } from '../store/ui.store';
@@ -9,7 +9,7 @@ import { Role } from '@agencyos/shared';
 import NotificationBell from './NotificationBell';
 import FloatingActionButton from './FloatingActionButton';
 import TeamOnboardingModal from './TeamOnboardingModal';
-import { useDarkMode } from '../hooks/useDarkMode';
+import { useDarkMode, toggleDarkMode, isDarkMode } from '../hooks/useDarkMode';
 
 interface LayoutProps { children: ReactNode }
 interface AgencyBranding { name: string; logoUrl: string | null; primaryColor: string }
@@ -38,6 +38,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const { user, setUser } = useAuthStore();
   const { sidebarOpen, toggleSidebar } = useUIStore();
+  const [dark, setDark] = useState(isDarkMode);
   useDarkMode(); // applies/removes 'dark' class on <html>
 
   const { data: meData } = useQuery({
@@ -142,6 +143,13 @@ export default function Layout({ children }: LayoutProps) {
               </span>
             ))}
           </div>
+          <button
+            onClick={() => { const d = toggleDarkMode(); setDark(d); }}
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400"
+            title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {dark ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
           {!isClient && <NotificationBell />}
         </header>
         <main className="flex-1 overflow-y-auto p-6">{children}</main>

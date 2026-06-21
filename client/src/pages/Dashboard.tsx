@@ -375,13 +375,13 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Agency stats */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-800 mb-3">Agency Overview</h2>
+          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-3">Agency Overview</h2>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: 'Active Clients', value: summary?.clients.active ?? '—', sub: `${summary?.clients.total ?? 0} total`, icon: Users, color: 'text-blue-600 bg-blue-50' },
-              { label: 'Posts This Month', value: summary?.posts.thisMonth ?? '—', sub: `${summary?.posts.total ?? 0} total`, icon: FileText, color: 'text-violet-600 bg-violet-50' },
-              { label: 'Avg Platform Score', value: summary?.optimization.overallAvg || '—', sub: 'across all clients', icon: Zap, color: 'text-primary-700 bg-primary-50' },
-              { label: 'Audits', value: summary?.audits.total ?? '—', sub: `${summary?.audits.inProgress ?? 0} in progress`, icon: CheckCircle, color: 'text-green-600 bg-green-50' },
+              { label: 'Active Clients', value: summary?.clients.active ?? '—', sub: `${summary?.clients.total ?? 0} total`, icon: Users, color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400' },
+              { label: 'Posts This Month', value: summary?.posts.thisMonth ?? '—', sub: `${summary?.posts.total ?? 0} total`, icon: FileText, color: 'text-violet-600 bg-violet-50 dark:bg-violet-900/30 dark:text-violet-400' },
+              { label: 'Avg Platform Score', value: summary?.optimization.overallAvg || '—', sub: 'across all clients', icon: Zap, color: 'text-primary-700 bg-primary-50 dark:bg-primary-900/30 dark:text-primary-400' },
+              { label: 'Audits', value: summary?.audits.total ?? '—', sub: `${summary?.audits.inProgress ?? 0} in progress`, icon: CheckCircle, color: 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' },
             ].map(stat => {
               const Icon = stat.icon;
               return (
@@ -390,8 +390,8 @@ export default function Dashboard() {
                     <Icon size={16} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-base font-bold text-gray-900 leading-tight">{stat.value}</p>
-                    <p className="text-xs text-gray-400 truncate">{stat.label}</p>
+                    <p className="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">{stat.value}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{stat.label}</p>
                   </div>
                 </div>
               );
@@ -413,15 +413,15 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-gray-800 mb-3">Quick Actions</h2>
+          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-3">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: 'New Post', href: '/content/new', icon: FileText, color: 'bg-violet-50 text-violet-700 hover:bg-violet-100' },
-              { label: 'AI Studio', href: '/ai-studio', icon: Bot, color: 'bg-purple-50 text-purple-700 hover:bg-purple-100' },
-              { label: 'Optimize', href: '/optimize', icon: Zap, color: 'bg-primary-50 text-primary-700 hover:bg-primary-100' },
-              { label: 'Analytics', href: '/analytics', icon: BarChart3, color: 'bg-accent-50 text-accent-700 hover:bg-accent-100' },
-              { label: 'Add Client', href: '/clients/new', icon: Users, color: 'bg-blue-50 text-blue-700 hover:bg-blue-100' },
-              { label: 'Search Visibility', href: '/ai-studio/search-visibility', icon: Sparkles, color: 'bg-sky-50 text-sky-700 hover:bg-sky-100' },
+              { label: 'New Post', href: '/content/new', icon: FileText, color: 'bg-violet-50 text-violet-700 hover:bg-violet-100 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50' },
+              { label: 'AI Studio', href: '/ai-studio', icon: Bot, color: 'bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50' },
+              { label: 'Optimize', href: '/optimize', icon: Zap, color: 'bg-primary-50 text-primary-700 hover:bg-primary-100 dark:bg-primary-900/30 dark:text-primary-300 dark:hover:bg-primary-900/50' },
+              { label: 'Analytics', href: '/analytics', icon: BarChart3, color: 'bg-accent-50 text-accent-700 hover:bg-accent-100 dark:bg-accent-900/30 dark:text-accent-300 dark:hover:bg-accent-900/50' },
+              { label: 'Add Client', href: '/clients/new', icon: Users, color: 'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50' },
+              { label: 'Search Visibility', href: '/ai-studio/search-visibility', icon: Sparkles, color: 'bg-sky-50 text-sky-700 hover:bg-sky-100 dark:bg-sky-900/30 dark:text-sky-300 dark:hover:bg-sky-900/50' },
             ].map(action => {
               const Icon = action.icon;
               return (
@@ -434,13 +434,13 @@ export default function Dashboard() {
           </div>
 
           {user?.role === Role.OWNER && (
-            <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+            <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-700/40">
               <div className="flex items-start gap-2">
-                <AlertTriangle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-medium text-amber-800">Setup Reminder</p>
-                  <p className="text-xs text-amber-700 mt-0.5">Configure API keys to unlock all AI features.</p>
-                  <Link to="/settings" state={{ tab: 'api-keys' }} className="text-xs text-amber-700 underline mt-1 inline-block">Go to Settings →</Link>
+                  <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Setup Reminder</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">Configure API keys to unlock all AI features.</p>
+                  <Link to="/settings" state={{ tab: 'api-keys' }} className="text-xs text-amber-700 dark:text-amber-400 underline mt-1 inline-block">Go to Settings →</Link>
                 </div>
               </div>
             </div>
