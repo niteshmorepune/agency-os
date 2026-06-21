@@ -153,4 +153,100 @@ router.get('/summary', asyncHandler(async (req, res) => {
   });
 }));
 
+// "Today" command-center data — pending approvals, overdue items, today's schedule, client feedback, unread messages
+router.get('/today', asyncHandler(async (req, res) => {
+  const agencyId = req.user!.agencyId;
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+
+  const [pendingApprovals, overdueItems, todayScheduled, clientFeedbackPosts, rawUnread] = await Promise.all([
+    // Posts waiting for team approval, oldest first
+    prisma.postDraft.findMany({
+      where: { client: { agencyId }, approvalStatus: 'PENDING', status: { notIn: ['ARCHIVED', 'PUBLISHED'] } },
+      orderBy: { createdAt: 'asc' },
+      take: 10,
+      select: {
+        id: true, caption: true, platforms: true, scheduledAt: true,
+        aiGenerated: true, clientReviewStatus: true, createdAt: true,
+        client: { select: { id: true, name: true } },
+      },
+    }),
+
+    // Overdue action items
+    prisma.clientActionItem.findMany({
+      where: { agencyId, status: { in: ['PENDING', 'IN_PROGRESS'] }, dueDate: { lt: now } },
+      orderBy: { dueDate: 'asc' },
+      take: 10,
+      select: {
+        id: true, title: true, dueDate: true, status: true,
+        clientId: true, client: { select: { name: true } },
+      },
+    }),
+
+    // Posts scheduled for today
+    prisma.postDraft.findMany({
+      where: {
+        client: { agencyId },
+        status: 'SCHEDULED',
+        scheduledAt: { gte: startOfDay, lt: endOfDay },
+      },
+      orderBy: { scheduledAt: 'asc' },
+      select: {
+        id: true, caption: true, platforms: true, scheduledAt: true,
+        approvalStatus: true, client: { select: { id: true, name: true } },
+      },
+    }),
+
+    // Posts where client has requested changes (team needs to act)
+    prisma.postDraft.findMany({
+      where: {
+        client: { agencyId },
+        clientReviewStatus: 'CHANGES_REQUESTED',
+        approvalStatus: 'PENDING',
+        status: { notIn: ['ARCHIVED', 'PUBLISHED'] },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 10,
+      select: {
+        id: true, caption: true, platforms: true, clientFeedback: true, updatedAt: true,
+        client: { select: { id: true, name: true } },
+      },
+    }),
+
+    // Unread messages sent by clients (team hasn't read yet)
+    prisma.clientMessage.groupBy({
+      by: ['clientId'],
+      where: { agencyId, isRead: false, senderRole: 'CLIENT' },
+      _count: { id: true },
+    }),
+  ]);
+
+  // Resolve client names for unread message groups
+  const msgClientIds = rawUnread.map(m => m.clientId);
+  const msgClients = msgClientIds.length
+    ? await prisma.client.findMany({
+        where: { id: { in: msgClientIds }, agencyId },
+        select: { id: true, name: true },
+      })
+    : [];
+  const clientNameMap = Object.fromEntries(msgClients.map(c => [c.id, c.name]));
+
+  const unreadMessages = rawUnread.map(m => ({
+    clientId: m.clientId,
+    clientName: clientNameMap[m.clientId] ?? 'Unknown',
+    count: m._count.id,
+  }));
+
+  res.json({
+    data: {
+      pendingApprovals,
+      overdueItems,
+      todayScheduled,
+      clientFeedback: clientFeedbackPosts,
+      unreadMessages,
+    },
+  });
+}));
+
 export default router;
