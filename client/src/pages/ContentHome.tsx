@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PenSquare, Calendar, Lightbulb, Trash2, CheckCircle, XCircle, Clock, FileText, ChevronRight, Image, ThumbsUp, MessageCircle } from 'lucide-react';
+import { PenSquare, Calendar, Lightbulb, Trash2, CheckCircle, XCircle, Clock, FileText, ChevronRight, Image, ThumbsUp, MessageCircle, BarChart2 } from 'lucide-react';
 import { api } from '../api/client';
 
 interface PostDraft {
@@ -101,6 +101,9 @@ export default function ContentHome() {
           </Link>
           <Link to="/content/media" className="btn-secondary text-sm flex items-center gap-2">
             <Image size={16} /> Media
+          </Link>
+          <Link to="/content/performance" className="btn-secondary text-sm flex items-center gap-2">
+            <BarChart2 size={16} /> Performance
           </Link>
           <Link to="/content/new" className="btn-primary text-sm flex items-center gap-2">
             <PenSquare size={16} /> New Post

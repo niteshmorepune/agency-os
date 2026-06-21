@@ -148,6 +148,31 @@ router.post('/:id/reject', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncH
   res.json({ data: updated });
 }));
 
+// Log actual performance metrics for a published post
+router.put('/:id/performance', asyncHandler(async (req, res) => {
+  const schema = z.object({
+    reach: z.number().min(1),
+    likes: z.number().min(0),
+    comments: z.number().min(0).optional().default(0),
+    saves: z.number().min(0).optional().default(0),
+    shares: z.number().min(0).optional().default(0),
+    impressions: z.number().min(0).optional(),
+  });
+  const metrics = schema.parse(req.body);
+  const post = await prisma.postDraft.findFirst({ where: { id: req.params.id, client: { agencyId: req.user!.agencyId } } });
+  if (!post) { res.status(404).json({ error: 'Post not found' }); return; }
+
+  const engagementRate = parseFloat(
+    ((metrics.likes + metrics.comments + metrics.saves + metrics.shares) / metrics.reach * 100).toFixed(2)
+  );
+
+  const updated = await prisma.postDraft.update({
+    where: { id: req.params.id },
+    data: { performance: { ...metrics, engagementRate, loggedAt: new Date().toISOString() } },
+  });
+  res.json({ data: updated });
+}));
+
 // Publish post (mark as PUBLISHED)
 router.post('/:id/publish', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(async (req, res) => {
   const post = await prisma.postDraft.findFirst({ where: { id: req.params.id, client: { agencyId: req.user!.agencyId } } });

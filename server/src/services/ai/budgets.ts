@@ -22,6 +22,7 @@ export const TOKEN_BUDGETS: Record<string, number> = {
   engagement: 1200,
   platform_rewrite: 500,
   search_visibility: 1500,
+  performance_insights: 1800,
 };
 
 export const CACHE_TTL: Record<string, number> = {
@@ -48,6 +49,7 @@ export const CACHE_TTL: Record<string, number> = {
   engagement: 86400,
   platform_rewrite: 86400,
   search_visibility: 259200,   // 3 days
+  performance_insights: 3600,  // 1 hour (data changes frequently)
 };
 
 export const COST_PER_INPUT_TOKEN = 0.000003;   // claude-sonnet-4 pricing

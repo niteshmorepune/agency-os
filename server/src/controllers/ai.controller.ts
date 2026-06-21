@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { getPostingSchedule } from '../services/postingTimes';
 import { getBenchmark, calculateEngagementRate, getRating, getPercentile } from '../services/engagementBenchmarks';
 import { getSearchVisibilityAudit } from '../services/ai/searchVisibility';
+import { generatePerformanceInsights } from '../services/ai/performanceInsights';
 
 const SYSTEM_BASE = `You are an expert digital marketing strategist for a premium agency. You have deep expertise in all major social platforms, SEO, paid ads, email marketing, and content strategy. Always output structured, actionable content. Never use filler phrases. Be specific and platform-aware.`;
 
@@ -357,6 +358,30 @@ export async function searchVisibilityAudit(req: Request, res: Response): Promis
 
   const cleaned = result.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
   res.json({ data: JSON.parse(cleaned) });
+}
+
+export async function performanceInsights(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    clientId: z.string(),
+    posts: z.array(z.object({
+      caption: z.string(),
+      platforms: z.array(z.string()),
+      scheduledAt: z.string().nullable().optional(),
+      reach: z.number().min(1),
+      likes: z.number().min(0),
+      comments: z.number().min(0),
+      saves: z.number().min(0),
+      shares: z.number().min(0),
+      engagementRate: z.number(),
+    })).min(1, 'At least one post with performance data is required'),
+  });
+  const { clientId, posts } = schema.parse(req.body);
+
+  const client = await prisma.client.findFirst({ where: { id: clientId, agencyId: req.user!.agencyId }, select: { name: true } });
+  if (!client) { res.status(404).json({ error: 'Client not found' }); return; }
+
+  const result = await generatePerformanceInsights({ clientName: client.name, clientId, posts, user: req.user! });
+  res.json({ data: result });
 }
 
 export async function getAIUsage(req: Request, res: Response): Promise<void> {
