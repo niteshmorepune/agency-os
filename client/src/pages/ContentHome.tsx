@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PenSquare, Calendar, Lightbulb, Trash2, CheckCircle, XCircle, Clock, FileText, ChevronRight, Image } from 'lucide-react';
+import { PenSquare, Calendar, Lightbulb, Trash2, CheckCircle, XCircle, Clock, FileText, ChevronRight, Image, ThumbsUp, MessageCircle } from 'lucide-react';
 import { api } from '../api/client';
 
 interface PostDraft {
@@ -13,6 +13,8 @@ interface PostDraft {
   scheduledAt: string | null;
   status: string;
   approvalStatus: string;
+  clientReviewStatus: string | null;
+  clientFeedback: string | null;
   aiGenerated: boolean;
   createdAt: string;
   createdBy: { name: string };
@@ -172,11 +174,27 @@ export default function ContentHome() {
                     <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${approval.cls}`}>
                       {approval.icon} {approval.label}
                     </span>
+                    {post.clientReviewStatus === 'CLIENT_APPROVED' && (
+                      <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium border border-green-200">
+                        <ThumbsUp size={10} /> Client OK
+                      </span>
+                    )}
+                    {post.clientReviewStatus === 'CHANGES_REQUESTED' && (
+                      <span
+                        className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium border border-amber-200 cursor-help"
+                        title={post.clientFeedback ?? 'Client requested changes'}
+                      >
+                        <MessageCircle size={10} /> Client Feedback
+                      </span>
+                    )}
                     {post.aiGenerated && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 font-medium">AI</span>
                     )}
                   </div>
                   <p className="text-sm text-gray-800 truncate">{post.caption}</p>
+                  {post.clientFeedback && (
+                    <p className="text-xs text-amber-700 mt-0.5 truncate italic">💬 "{post.clientFeedback}"</p>
+                  )}
                   <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
                     <span>by {post.createdBy.name}</span>
                     {post.scheduledAt && (

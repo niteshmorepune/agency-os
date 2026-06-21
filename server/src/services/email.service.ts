@@ -151,6 +151,62 @@ export async function sendActionItemEmail(params: {
   });
 }
 
+export async function sendContentReviewEmail(params: {
+  agencyId: string;
+  amEmail: string;
+  clientName: string;
+  action: 'CLIENT_APPROVED' | 'CHANGES_REQUESTED';
+  caption: string;
+  feedback?: string;
+  postId: string;
+}) {
+  let transport: ReturnType<typeof nodemailer.createTransport>;
+  let fromEmail: string;
+  let agencyName: string;
+  try {
+    ({ transport, fromEmail, agencyName } = await getTransport(params.agencyId));
+  } catch {
+    return;
+  }
+  const baseUrl = (process.env.APP_URL ?? 'https://nedsdrishti.in').replace(/\/$/, '');
+  const isApproved = params.action === 'CLIENT_APPROVED';
+  const subject = isApproved
+    ? `✅ ${params.clientName} approved a post`
+    : `💬 ${params.clientName} requested changes on a post`;
+  await transport.sendMail({
+    from: `"${agencyName}" <${fromEmail}>`,
+    to: params.amEmail,
+    subject,
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#111827">
+        <div style="background:${isApproved ? '#166534' : '#92400e'};padding:24px 32px;border-radius:12px 12px 0 0">
+          <h1 style="color:#fff;margin:0;font-size:18px;font-weight:700">${agencyName}</h1>
+          <p style="color:${isApproved ? '#bbf7d0' : '#fde68a'};margin:4px 0 0;font-size:13px">Content Review</p>
+        </div>
+        <div style="background:#fff;padding:28px 32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px">
+          <p style="color:#374151;font-size:15px">
+            ${isApproved
+              ? `<strong>${params.clientName}</strong> has <span style="color:#16a34a;font-weight:600">approved</span> a post.`
+              : `<strong>${params.clientName}</strong> has <span style="color:#d97706;font-weight:600">requested changes</span> on a post.`}
+          </p>
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;margin:16px 0">
+            <p style="color:#6b7280;font-size:12px;margin:0 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Caption preview</p>
+            <p style="color:#111827;font-size:14px;margin:0;line-height:1.5">${params.caption.slice(0, 200)}${params.caption.length > 200 ? '…' : ''}</p>
+          </div>
+          ${params.feedback ? `
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px 16px;margin:16px 0">
+            <p style="color:#92400e;font-size:12px;margin:0 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Client feedback</p>
+            <p style="color:#78350f;font-size:14px;margin:0;line-height:1.5">${params.feedback}</p>
+          </div>` : ''}
+          <p style="text-align:center;margin:24px 0">
+            <a href="${baseUrl}/content/${params.postId}/edit" style="background:#1a472a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">View Post →</a>
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendOnboardingEmail(params: {
   agencyId: string;
   clientName: string;

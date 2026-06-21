@@ -272,27 +272,29 @@ model PlatformScoreHistory {
 // ─── Content Studio ───────────────────────────────────────────────────────────
 
 model PostDraft {
-  id                String         @id @default(cuid())
-  clientId          String
-  client            Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  createdById       String
-  createdBy         User           @relation(fields: [createdById], references: [id])
-  platforms         Platform[]
-  caption           String
-  hashtags          String[]
-  mediaUrls         String[]
-  altTexts          String[]
-  platformOverrides Json?
-  scheduledAt       DateTime?
-  status            PostStatus     @default(DRAFT)
-  approvalStatus    ApprovalStatus @default(PENDING)
-  approvedById      String?
-  approvedBy        User?          @relation("PostApprovals", fields: [approvedById], references: [id])
-  notes             String         @default("")
-  aiGenerated       Boolean        @default(false)
-  performance       Json?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  id                   String              @id @default(cuid())
+  clientId             String
+  client               Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdById          String
+  createdBy            User                @relation(fields: [createdById], references: [id])
+  platforms            Platform[]
+  caption              String
+  hashtags             String[]
+  mediaUrls            String[]
+  altTexts             String[]
+  platformOverrides    Json?
+  scheduledAt          DateTime?
+  status               PostStatus          @default(DRAFT)
+  approvalStatus       ApprovalStatus      @default(PENDING)
+  approvedById         String?
+  approvedBy           User?               @relation("PostApprovals", fields: [approvedById], references: [id])
+  notes                String              @default("")
+  aiGenerated          Boolean             @default(false)
+  performance          Json?
+  clientReviewStatus   ClientReviewStatus?
+  clientFeedback       String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 }
 
 enum PostStatus {
@@ -307,6 +309,11 @@ enum ApprovalStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum ClientReviewStatus {
+  CLIENT_APPROVED
+  CHANGES_REQUESTED
 }
 
 model ContentIdea {

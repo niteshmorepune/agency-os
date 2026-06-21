@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, RefreshCw, TrendingUp, FileText, CheckCircle, AlertTriangle, XCircle, Clock, Zap, CheckCircle2, Calendar, MessageSquare, Send } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Download, RefreshCw, TrendingUp, FileText, CheckCircle, AlertTriangle, XCircle, Clock, Zap, CheckCircle2, Calendar, MessageSquare, Send, ThumbsUp, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
@@ -44,6 +44,20 @@ interface ClientMessage {
   senderName: string;
   body: string;
   isRead: boolean;
+  createdAt: string;
+}
+
+interface ReviewPost {
+  id: string;
+  caption: string;
+  platforms: string[];
+  hashtags: string[];
+  scheduledAt: string | null;
+  status: string;
+  approvalStatus: string;
+  clientReviewStatus: string | null;
+  clientFeedback: string | null;
+  aiGenerated: boolean;
   createdAt: string;
 }
 
@@ -104,6 +118,9 @@ export default function ClientPortal() {
   const [msgBody, setMsgBody] = useState('');
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [feedbackPostId, setFeedbackPostId] = useState<string | null>(null);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [expandedPost, setExpandedPost] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['portal-summary'],
@@ -131,6 +148,38 @@ export default function ClientPortal() {
     staleTime: 20_000,
   });
   const messages = messagesData?.data ?? [];
+
+  const { data: reviewPostsData } = useQuery({
+    queryKey: ['portal-review-posts', clientId],
+    queryFn: () => api.get<{ data: ReviewPost[] }>('/client-portal/posts'),
+    enabled: !!clientId,
+    staleTime: 30_000,
+  });
+  const allReviewPosts = reviewPostsData?.data ?? [];
+  const pendingReviewPosts = allReviewPosts.filter(p => !p.clientReviewStatus);
+  const reviewedPosts = allReviewPosts.filter(p => p.clientReviewStatus);
+
+  const reviewMutation = useMutation({
+    mutationFn: ({ postId, action, feedback }: { postId: string; action: string; feedback?: string }) =>
+      api.post(`/client-portal/posts/${postId}/review`, { action, feedback }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['portal-review-posts', clientId] });
+      setFeedbackPostId(null);
+      setFeedbackText('');
+    },
+    onError: () => toast.error('Failed to submit review. Please try again.'),
+  });
+
+  const handleApprove = (postId: string) => {
+    reviewMutation.mutate({ postId, action: 'CLIENT_APPROVED' });
+    toast.success('Post approved!');
+  };
+
+  const handleRequestChanges = (postId: string) => {
+    if (!feedbackText.trim()) { toast.error('Please add feedback before submitting.'); return; }
+    reviewMutation.mutate({ postId, action: 'CHANGES_REQUESTED', feedback: feedbackText.trim() });
+    toast.success('Feedback sent to the team!');
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -238,7 +287,7 @@ export default function ClientPortal() {
           { label: 'Avg Platform Score', value: avgScore || '—', icon: TrendingUp, color: 'bg-primary-50 text-primary-700' },
           { label: 'Platforms Active', value: activePlatforms.length, icon: Zap, color: 'bg-blue-50 text-blue-600' },
           { label: 'Approved Posts', value: recentPosts.length, icon: FileText, color: 'bg-violet-50 text-violet-600' },
-          { label: 'Action Items', value: topActions.length, icon: AlertTriangle, color: 'bg-amber-50 text-amber-600' },
+          { label: 'Awaiting Review', value: pendingReviewPosts.length, icon: ThumbsUp, color: pendingReviewPosts.length > 0 ? 'bg-amber-50 text-amber-600' : 'bg-gray-50 text-gray-400' },
         ].map(stat => {
           const Icon = stat.icon;
           return (
@@ -427,6 +476,149 @@ export default function ClientPortal() {
               <Send size={13} /> {sending ? '…' : 'Send'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Content review section */}
+      {allReviewPosts.length > 0 && (
+        <div className="card overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+            <ThumbsUp size={16} className="text-violet-600" />
+            <h2 className="font-semibold text-gray-800">Content for Your Review</h2>
+            {pendingReviewPosts.length > 0 && (
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
+                {pendingReviewPosts.length} pending
+              </span>
+            )}
+          </div>
+
+          {/* Posts pending review */}
+          {pendingReviewPosts.length > 0 && (
+            <div className="divide-y divide-gray-50">
+              {pendingReviewPosts.map(post => (
+                <div key={post.id} className="px-6 py-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                        {post.platforms.slice(0, 4).map(p => (
+                          <span key={p} className={`text-xs text-white px-2 py-0.5 rounded-lg font-medium ${PLATFORM_META[p]?.bg ?? 'bg-gray-500'}`}>
+                            {PLATFORM_META[p]?.label ?? p}
+                          </span>
+                        ))}
+                        {post.scheduledAt && (
+                          <span className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg">
+                            <Clock size={10} />
+                            {new Date(post.scheduledAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
+                      <p className={`text-sm text-gray-800 leading-relaxed ${expandedPost === post.id ? '' : 'line-clamp-3'}`}>
+                        {post.caption}
+                      </p>
+                      {post.caption.length > 200 && (
+                        <button
+                          className="text-xs text-primary-600 hover:underline mt-1 flex items-center gap-0.5"
+                          onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)}
+                        >
+                          {expandedPost === post.id ? <><ChevronUp size={12} /> Show less</> : <><ChevronDown size={12} /> Read more</>}
+                        </button>
+                      )}
+                      {post.hashtags.length > 0 && (
+                        <p className="text-xs text-blue-500 mt-2">{post.hashtags.map(h => `#${h}`).join(' ')}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Feedback modal inline */}
+                  {feedbackPostId === post.id ? (
+                    <div className="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                      <p className="text-sm font-medium text-amber-800 mb-2">What changes would you like?</p>
+                      <textarea
+                        className="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white"
+                        rows={3}
+                        placeholder="Describe what you'd like changed…"
+                        value={feedbackText}
+                        onChange={e => setFeedbackText(e.target.value)}
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => handleRequestChanges(post.id)}
+                          disabled={reviewMutation.isPending}
+                          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          Send Feedback
+                        </button>
+                        <button
+                          onClick={() => { setFeedbackPostId(null); setFeedbackText(''); }}
+                          className="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => handleApprove(post.id)}
+                        disabled={reviewMutation.isPending}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        <ThumbsUp size={13} /> Approve
+                      </button>
+                      <button
+                        onClick={() => { setFeedbackPostId(post.id); setFeedbackText(''); }}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        <MessageCircle size={13} /> Request Changes
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {pendingReviewPosts.length === 0 && (
+            <div className="px-6 py-5 text-center text-sm text-gray-400">
+              <CheckCircle size={28} className="mx-auto mb-2 text-green-400" />
+              All content reviewed — no pending posts.
+            </div>
+          )}
+
+          {/* Reviewed posts (collapsible) */}
+          {reviewedPosts.length > 0 && (
+            <details className="border-t border-gray-100">
+              <summary className="px-6 py-3 text-xs text-gray-400 cursor-pointer hover:text-gray-600 select-none">
+                {reviewedPosts.length} already reviewed
+              </summary>
+              <div className="divide-y divide-gray-50">
+                {reviewedPosts.map(post => (
+                  <div key={post.id} className="px-6 py-3 flex items-start gap-3 bg-gray-50/50">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        {post.platforms.slice(0, 3).map(p => (
+                          <span key={p} className={`text-xs text-white px-1.5 py-0.5 rounded font-medium ${PLATFORM_META[p]?.bg ?? 'bg-gray-500'}`}>
+                            {PLATFORM_META[p]?.label ?? p}
+                          </span>
+                        ))}
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          post.clientReviewStatus === 'CLIENT_APPROVED'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {post.clientReviewStatus === 'CLIENT_APPROVED' ? '✓ You approved' : '💬 Changes requested'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 truncate">{post.caption}</p>
+                      {post.clientFeedback && (
+                        <p className="text-xs text-amber-700 mt-1 italic">"{post.clientFeedback}"</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
       )}
 

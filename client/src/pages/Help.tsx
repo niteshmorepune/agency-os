@@ -541,6 +541,15 @@ const SECTIONS: Section[] = [
           { type: 'tip', text: 'Use messages for quick questions, sharing assets, or requesting changes. For formal deliverables use the Action Items system.' },
         ],
       },
+      {
+        title: 'Reviewing and approving content (client view)',
+        content: [
+          { type: 'para', text: 'Clients can now review, approve, or request changes on posts directly from their portal — no back-and-forth emails needed.' },
+          { type: 'steps', items: ['Log in as a client — scroll to the "Content for Your Review" section', 'Each pending post shows the caption, target platforms, and scheduled date', 'Click "Read more" to expand the full caption', 'Click "Approve" if the content looks good — your account team is notified', 'Click "Request Changes" to open a feedback box — type what needs to change and click "Send Feedback"', 'Your feedback appears on the post in the team\'s Content Studio view'] },
+          { type: 'tip', text: 'Already-reviewed posts collapse into a summary row at the bottom of the section so the section stays clean.' },
+          { type: 'note', text: 'Client approval is separate from the team\'s internal approval. The account manager still does a final approval before the post goes live.' },
+        ],
+      },
     ],
   },
   {
