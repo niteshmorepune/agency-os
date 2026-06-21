@@ -126,6 +126,7 @@ model Client {
   actionItems           ClientActionItem[]
   messages              ClientMessage[]
   onboardingToken       OnboardingToken?
+  socialAccounts        SocialAccount[]
 }
 
 enum ClientStatus {
@@ -293,6 +294,7 @@ model PostDraft {
   performance          Json?
   clientReviewStatus   ClientReviewStatus?
   clientFeedback       String?
+  publishedAt          DateTime?
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 }
@@ -334,6 +336,43 @@ enum IdeaStatus {
   SAVED
   USED
   REJECTED
+}
+
+// ─── Social Publishing ────────────────────────────────────────────────────────
+
+model SocialAccount {
+  id             String    @id @default(cuid())
+  agencyId       String
+  clientId       String
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  platform       Platform
+  accountName    String
+  accountId      String    // Page ID / IG Business ID / LinkedIn URN suffix
+  accessToken    String    // AES-256 encrypted
+  tokenExpiresAt DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([clientId, platform])
+}
+
+model PostPublishLog {
+  id             String        @id @default(cuid())
+  postId         String
+  agencyId       String
+  platform       Platform
+  status         PublishStatus @default(PENDING)
+  publishedUrl   String?
+  platformPostId String?
+  errorMessage   String?
+  attemptedAt    DateTime      @default(now())
+}
+
+enum PublishStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }
 
 // ─── AI Studio ────────────────────────────────────────────────────────────────

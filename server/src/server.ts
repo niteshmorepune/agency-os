@@ -29,6 +29,7 @@ import webhooksRoutes from './routes/webhooks.routes';
 import onboardingRoutes from './routes/onboarding.routes';
 import helpRoutes from './routes/help.routes';
 import profileRoutes from './routes/profile.routes';
+import socialRoutes from './routes/social.routes';
 import { startScheduler } from './lib/scheduler';
 
 const app = express();
@@ -85,6 +86,7 @@ app.use('/api/webhooks', webhooksRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/help', helpRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/social', socialRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

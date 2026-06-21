@@ -9,6 +9,7 @@ import {
   ArrowLeft, Edit2, Save, X, Globe, Mail, DollarSign,
   Users, BarChart2, Plus, Trash2, UserPlus, Building2, ClipboardList, TrendingUp,
   CheckCircle2, Circle, PartyPopper, Send, MessageSquare, Calendar, AlertCircle, Link2,
+  Share2, CheckCircle, XCircle, Loader2,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { api } from '../api/client';
@@ -883,7 +884,217 @@ function ReportsTab({ client }: { client: ClientDetail }) {
   );
 }
 
-type Tab = 'overview' | 'platforms' | 'team' | 'reports' | 'action-items' | 'messages';
+const SOCIAL_PLATFORMS = [
+  { value: 'FACEBOOK', label: 'Facebook', hint: 'Page ID (numeric)' },
+  { value: 'INSTAGRAM', label: 'Instagram', hint: 'Instagram Business Account ID (numeric)' },
+  { value: 'LINKEDIN', label: 'LinkedIn', hint: 'organization:123456 or person:abc123' },
+  { value: 'TWITTER', label: 'X / Twitter', hint: 'Coming soon' },
+];
+
+interface SocialAccount {
+  id: string;
+  platform: string;
+  accountName: string;
+  accountId: string;
+  isActive: boolean;
+  tokenExpiresAt: string | null;
+  createdAt: string;
+}
+
+const connectSocialSchema = z.object({
+  platform: z.enum(['FACEBOOK', 'INSTAGRAM', 'LINKEDIN', 'TWITTER', 'TIKTOK', 'YOUTUBE']),
+  accountName: z.string().min(1).max(200),
+  accountId: z.string().min(1).max(500),
+  accessToken: z.string().min(1),
+  tokenExpiresAt: z.string().optional(),
+});
+type ConnectSocialForm = z.infer<typeof connectSocialSchema>;
+
+function SocialAccountsTab({ clientId }: { clientId: string }) {
+  const { user } = useAuthStore();
+  const qc = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [testingId, setTestingId] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<Record<string, { ok: boolean; name?: string; error?: string }>>({});
+
+  const canManage = user?.role === 'OWNER' || user?.role === 'ACCOUNT_MANAGER';
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['social-accounts', clientId],
+    queryFn: () => api.get<{ data: SocialAccount[] }>(`/social?clientId=${clientId}`),
+    staleTime: 30_000,
+  });
+  const accounts = data?.data ?? [];
+
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<ConnectSocialForm>({
+    resolver: zodResolver(connectSocialSchema),
+    defaultValues: { platform: 'FACEBOOK' },
+  });
+  const selectedPlatform = watch('platform');
+  const platformHint = SOCIAL_PLATFORMS.find(p => p.value === selectedPlatform)?.hint ?? '';
+
+  const connectMutation = useMutation({
+    mutationFn: (data: ConnectSocialForm) => api.post('/social/connect', { ...data, clientId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['social-accounts', clientId] });
+      toast.success('Account connected');
+      reset();
+      setShowForm(false);
+    },
+    onError: (e: Error) => toast.error(e.message || 'Failed to connect account'),
+  });
+
+  const disconnectMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/social/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['social-accounts', clientId] }); toast.success('Account disconnected'); },
+    onError: () => toast.error('Failed to disconnect'),
+  });
+
+  async function testConnection(account: SocialAccount) {
+    setTestingId(account.id);
+    try {
+      const res = await api.post<{ ok: boolean; name?: string; error?: string }>(`/social/${account.id}/test`, {});
+      setTestResult(prev => ({ ...prev, [account.id]: res }));
+      if (res.ok) {
+        toast.success(`Connected as ${res.name ?? account.accountName}`);
+        qc.invalidateQueries({ queryKey: ['social-accounts', clientId] });
+      } else {
+        toast.error(res.error ?? 'Token invalid');
+      }
+    } catch {
+      toast.error('Test failed');
+    } finally {
+      setTestingId(null);
+    }
+  }
+
+  return (
+    <div className="space-y-5 max-w-2xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-gray-800">Connected Social Accounts</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Posts scheduled and approved will auto-publish via these accounts.</p>
+        </div>
+        {canManage && (
+          <button onClick={() => setShowForm(v => !v)} className="btn-secondary text-sm flex items-center gap-2">
+            <Plus size={15} /> Connect Account
+          </button>
+        )}
+      </div>
+
+      {showForm && (
+        <div className="card p-5 space-y-4 border-2 border-primary-200">
+          <h4 className="font-medium text-gray-800 text-sm flex items-center gap-2"><Share2 size={15} /> Add Social Account</h4>
+          <form onSubmit={handleSubmit(d => connectMutation.mutate(d))} className="space-y-3">
+            <div>
+              <label className="label">Platform</label>
+              <select {...register('platform')} className="input">
+                {SOCIAL_PLATFORMS.map(p => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Account Display Name</label>
+              <input {...register('accountName')} className="input" placeholder="e.g. NEDS Drishti Facebook Page" />
+              {errors.accountName && <p className="text-red-500 text-xs mt-1">{errors.accountName.message}</p>}
+            </div>
+            <div>
+              <label className="label">Account / Page ID</label>
+              <input {...register('accountId')} className="input" placeholder={platformHint} />
+              <p className="text-xs text-gray-400 mt-1">{platformHint}</p>
+              {errors.accountId && <p className="text-red-500 text-xs mt-1">{errors.accountId.message}</p>}
+            </div>
+            <div>
+              <label className="label">Access Token</label>
+              <textarea {...register('accessToken')} className="input resize-none text-xs font-mono" rows={3} placeholder="Paste page/user access token here" />
+              {errors.accessToken && <p className="text-red-500 text-xs mt-1">{errors.accessToken.message}</p>}
+              <p className="text-xs text-gray-400 mt-1">Token is encrypted with AES-256 before storage.</p>
+            </div>
+            <div>
+              <label className="label">Token Expires At <span className="text-gray-400">(optional)</span></label>
+              <input {...register('tokenExpiresAt')} type="datetime-local" className="input" />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button type="submit" disabled={connectMutation.isPending} className="btn-primary text-sm">
+                {connectMutation.isPending ? 'Saving…' : 'Save Account'}
+              </button>
+              <button type="button" onClick={() => { setShowForm(false); reset(); }} className="btn-secondary text-sm">Cancel</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+      ) : accounts.length === 0 ? (
+        <div className="card p-10 text-center">
+          <Share2 size={32} className="mx-auto text-gray-300 mb-3" />
+          <p className="text-gray-600 font-medium text-sm">No accounts connected yet</p>
+          <p className="text-gray-400 text-xs mt-1">Connect Facebook, Instagram, or LinkedIn to enable auto-publishing.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {accounts.map(account => {
+            const tr = testResult[account.id];
+            const isExpired = account.tokenExpiresAt ? new Date(account.tokenExpiresAt) < new Date() : false;
+            return (
+              <div key={account.id} className={`card p-4 flex items-center gap-4 ${!account.isActive ? 'opacity-60' : ''}`}>
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${PLATFORM_COLORS[account.platform] ?? 'bg-gray-500'}`}>
+                  {account.platform.slice(0, 2)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium text-gray-800">{account.accountName}</p>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${account.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                      {account.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                    {isExpired && <span className="text-xs px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium">Token expired</span>}
+                    {tr && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1 ${tr.ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                        {tr.ok ? <CheckCircle size={10} /> : <XCircle size={10} />} {tr.ok ? (tr.name ?? 'OK') : 'Invalid token'}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">ID: {account.accountId}</p>
+                  {account.tokenExpiresAt && (
+                    <p className="text-xs text-gray-400">Expires: {new Date(account.tokenExpiresAt).toLocaleDateString('en-IN')}</p>
+                  )}
+                </div>
+                {canManage && (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => testConnection(account)}
+                      disabled={testingId === account.id}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-colors flex items-center gap-1"
+                    >
+                      {testingId === account.id ? <Loader2 size={12} className="animate-spin" /> : null}
+                      Test
+                    </button>
+                    <button
+                      onClick={() => { if (confirm('Disconnect this account?')) disconnectMutation.mutate(account.id); }}
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-700 space-y-1">
+        <p className="font-semibold">How auto-publishing works</p>
+        <p>Posts that are <strong>Approved</strong> and <strong>Scheduled</strong> are checked every 5 minutes. When the scheduled time is reached, they are automatically published to all connected platforms for this client.</p>
+        <p className="mt-1">Get access tokens from the <strong>Facebook Developer Console</strong> (for FB + Instagram) or <strong>LinkedIn Developer Portal</strong>. Long-lived page tokens are recommended.</p>
+      </div>
+    </div>
+  );
+}
+
+type Tab = 'overview' | 'platforms' | 'team' | 'reports' | 'action-items' | 'messages' | 'social';
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -928,6 +1139,7 @@ export default function ClientDetail() {
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'overview', label: 'Overview', icon: <Building2 size={16} /> },
     { id: 'platforms', label: 'Platforms', icon: <BarChart2 size={16} /> },
+    { id: 'social', label: 'Social Accounts', icon: <Share2 size={16} /> },
     { id: 'team', label: 'Team', icon: <Users size={16} /> },
     { id: 'action-items', label: 'Action Items', icon: <CheckCircle2 size={16} /> },
     { id: 'messages', label: 'Messages', icon: <MessageSquare size={16} /> },
@@ -1020,6 +1232,7 @@ export default function ClientDetail() {
       <div>
         {activeTab === 'overview' && <OverviewTab client={client} onSaved={() => qc.invalidateQueries({ queryKey: ['client', id] })} />}
         {activeTab === 'platforms' && <PlatformsTab clientId={client.id} />}
+        {activeTab === 'social' && <SocialAccountsTab clientId={client.id} />}
         {activeTab === 'team' && <TeamTab client={client} />}
         {activeTab === 'action-items' && <ActionItemsTab clientId={client.id} />}
         {activeTab === 'messages' && <MessagesTab clientId={client.id} />}

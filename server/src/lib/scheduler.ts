@@ -8,8 +8,18 @@ import {
   sendClientReport,
 } from '../services/email.service';
 import { generateClientReport } from '../services/report.service';
+import {
+  publishToFacebook,
+  publishToInstagram,
+  publishToLinkedIn,
+} from '../services/publisher.service';
 
 export function startScheduler(): void {
+  // Auto-publish scheduled posts — every 5 minutes
+  cron.schedule('*/5 * * * *', () => {
+    runAutoPublish().catch(err => logger.error({ msg: 'Auto-publish run failed', err }));
+  });
+
   // Daily alerts at 9:00 AM IST = 03:30 UTC
   cron.schedule('30 3 * * *', () => {
     logger.info({ msg: 'Scheduler: running daily smart alerts' });
@@ -22,7 +32,108 @@ export function startScheduler(): void {
     runMonthlyReports().catch(err => logger.error({ msg: 'Monthly reports failed', err }));
   });
 
-  logger.info({ msg: 'Scheduler started — daily 03:30 UTC, monthly 02:30 UTC on 1st' });
+  logger.info({ msg: 'Scheduler started — auto-publish every 5min, daily 03:30 UTC, monthly 02:30 UTC on 1st' });
+}
+
+// ─── Auto-publish ─────────────────────────────────────────────────────────────
+
+async function runAutoPublish(): Promise<void> {
+  const now = new Date();
+
+  // Find SCHEDULED posts that are APPROVED, due now, and not yet published
+  const duePosts = await prisma.postDraft.findMany({
+    where: {
+      status: 'SCHEDULED',
+      approvalStatus: 'APPROVED',
+      scheduledAt: { lte: now },
+      publishedAt: null,
+    },
+    select: {
+      id: true,
+      clientId: true,
+      caption: true,
+      hashtags: true,
+      mediaUrls: true,
+      platforms: true,
+      platformOverrides: true,
+      client: { select: { agencyId: true } },
+    },
+  });
+
+  if (duePosts.length === 0) return;
+
+  logger.info({ msg: `Auto-publish: found ${duePosts.length} post(s) due` });
+
+  for (const post of duePosts) {
+    const agencyId = post.client.agencyId;
+
+    // Fetch active social accounts for this client
+    const socialAccounts = await prisma.socialAccount.findMany({
+      where: {
+        agencyId,
+        clientId: post.clientId,
+        isActive: true,
+        platform: { in: post.platforms as never[] },
+      },
+    });
+
+    if (socialAccounts.length === 0) {
+      logger.warn({ msg: 'Auto-publish: no connected accounts for post', postId: post.id });
+      continue;
+    }
+
+    let anySuccess = false;
+
+    for (const account of socialAccounts) {
+      // Build payload — use platform override caption if defined
+      const overrides = (post.platformOverrides as Record<string, { caption?: string; hashtags?: string[] }> | null) ?? {};
+      const override = overrides[account.platform as string] ?? {};
+      const payload = {
+        caption: override.caption ?? post.caption,
+        hashtags: override.hashtags ?? (post.hashtags as string[]),
+        mediaUrls: post.mediaUrls as string[],
+      };
+
+      let result;
+      if (account.platform === 'FACEBOOK') {
+        result = await publishToFacebook(payload, account.accountId, account.accessToken);
+      } else if (account.platform === 'INSTAGRAM') {
+        result = await publishToInstagram(payload, account.accountId, account.accessToken);
+      } else if (account.platform === 'LINKEDIN') {
+        result = await publishToLinkedIn(payload, account.accountId, account.accessToken);
+      } else {
+        logger.warn({ msg: `Auto-publish: no publisher for ${account.platform}`, postId: post.id });
+        continue;
+      }
+
+      await prisma.postPublishLog.create({
+        data: {
+          postId: post.id,
+          agencyId,
+          platform: account.platform as never,
+          status: result.success ? 'SUCCESS' : 'FAILED',
+          publishedUrl: result.publishedUrl ?? null,
+          platformPostId: result.platformPostId ?? null,
+          errorMessage: result.error ?? null,
+        },
+      });
+
+      if (result.success) {
+        anySuccess = true;
+        logger.info({ msg: `Auto-publish: SUCCESS`, postId: post.id, platform: account.platform, url: result.publishedUrl });
+      } else {
+        logger.error({ msg: `Auto-publish: FAILED`, postId: post.id, platform: account.platform, error: result.error });
+      }
+    }
+
+    // Mark as PUBLISHED if at least one platform succeeded
+    if (anySuccess) {
+      await prisma.postDraft.update({
+        where: { id: post.id },
+        data: { status: 'PUBLISHED', publishedAt: now },
+      });
+    }
+  }
 }
 
 // ─── Daily alert checks ───────────────────────────────────────────────────────

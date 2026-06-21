@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PenSquare, Calendar, Lightbulb, Trash2, CheckCircle, XCircle, Clock, FileText, ChevronRight, Image, ThumbsUp, MessageCircle, BarChart2 } from 'lucide-react';
+import { PenSquare, Calendar, Lightbulb, Trash2, CheckCircle, XCircle, Clock, FileText, ChevronRight, Image, ThumbsUp, MessageCircle, BarChart2, Radio } from 'lucide-react';
 import { api } from '../api/client';
 
 interface PostDraft {
@@ -11,6 +11,7 @@ interface PostDraft {
   caption: string;
   hashtags: string[];
   scheduledAt: string | null;
+  publishedAt: string | null;
   status: string;
   approvalStatus: string;
   clientReviewStatus: string | null;
@@ -177,6 +178,11 @@ export default function ContentHome() {
                     <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${approval.cls}`}>
                       {approval.icon} {approval.label}
                     </span>
+                    {post.publishedAt && (
+                      <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
+                        <Radio size={10} /> Live
+                      </span>
+                    )}
                     {post.clientReviewStatus === 'CLIENT_APPROVED' && (
                       <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium border border-green-200">
                         <ThumbsUp size={10} /> Client OK
