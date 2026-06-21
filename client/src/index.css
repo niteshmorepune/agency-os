@@ -4,32 +4,32 @@
 
 @layer base {
   * {
-    @apply border-gray-200 dark:border-gray-700;
+    @apply border-gray-200;
   }
   body {
-    @apply bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100;
+    @apply bg-gray-50 text-gray-900 antialiased;
     font-family: 'Inter', system-ui, sans-serif;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary-800 text-white font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-gray-900;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary-800 text-white font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-offset-gray-900;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors;
   }
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors;
   }
   .card {
-    @apply bg-white rounded-xl border border-gray-200 shadow-sm dark:bg-gray-900 dark:border-gray-700;
+    @apply bg-white rounded-xl border border-gray-200 shadow-sm;
   }
   .input {
-    @apply block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-500;
+    @apply block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500;
   }
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300;
+    @apply block text-sm font-medium text-gray-700 mb-1;
   }
   .badge-pass {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800;
@@ -44,3 +44,44 @@
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600;
   }
 }
+
+/* ─── Dark mode — global overrides ──────────────────────────────────────────
+   These live OUTSIDE @layer so they sit above Tailwind utilities in the CSS
+   cascade. .dark .utility has higher specificity (2 classes) than .utility
+   (1 class), so these win on every element without touching individual files.  */
+
+/* Page & surface backgrounds */
+.dark body                { background-color: #030712; color: #f3f4f6; }   /* gray-950 / gray-100 */
+.dark .bg-white           { background-color: #111827; }                    /* gray-900 */
+.dark .bg-gray-50         { background-color: #111827; }                    /* gray-900 */
+.dark .bg-gray-100        { background-color: #1f2937; }                    /* gray-800 */
+
+/* Component classes */
+.dark .card               { background-color: #111827; border-color: #374151; box-shadow: none; }
+.dark .input              { background-color: #1f2937; border-color: #4b5563; color: #f3f4f6; }
+.dark .input::placeholder { color: #6b7280; }
+.dark .label              { color: #d1d5db; }
+.dark .btn-secondary      { background-color: #1f2937; color: #e5e7eb; border-color: #4b5563; }
+.dark .btn-secondary:hover { background-color: #374151; }
+
+/* Text colours */
+.dark .text-gray-900      { color: #f3f4f6; }   /* gray-100 */
+.dark .text-gray-800      { color: #e5e7eb; }   /* gray-200 */
+.dark .text-gray-700      { color: #d1d5db; }   /* gray-300 */
+.dark .text-gray-600      { color: #9ca3af; }   /* gray-400 */
+.dark .text-gray-500      { color: #6b7280; }   /* gray-500 (unchanged) */
+.dark .text-gray-400      { color: #4b5563; }   /* gray-600 */
+
+/* Borders */
+.dark .border-gray-100    { border-color: #374151; }   /* gray-700 */
+.dark .border-gray-200    { border-color: #374151; }   /* gray-700 */
+.dark .border-gray-300    { border-color: #4b5563; }   /* gray-600 */
+
+/* Hover backgrounds — prevent white flash on hover */
+.dark .hover\:bg-gray-50:hover   { background-color: #1f2937; }
+.dark .hover\:bg-gray-100:hover  { background-color: #374151; }
+.dark .hover\:bg-white:hover     { background-color: #1f2937; }
+
+/* Dividers */
+.dark .divide-gray-100 > * + *  { border-color: #374151; }
+.dark .divide-gray-200 > * + *  { border-color: #374151; }
