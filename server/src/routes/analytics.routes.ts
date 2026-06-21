@@ -255,6 +255,83 @@ router.get('/today', asyncHandler(async (req, res) => {
   });
 }));
 
+// Team workload view — OWNER only
+router.get('/workload', requireRole(Role.OWNER), asyncHandler(async (req, res) => {
+  const agencyId = req.user!.agencyId;
+  const now = new Date();
+
+  // Get all agency users with their assigned clients
+  const teamMembers = await prisma.user.findMany({
+    where: { agencyId, isActive: true, role: { in: ['OWNER', 'ACCOUNT_MANAGER', 'CONTENT_CREATOR', 'SEO_ANALYST'] } },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      avatarUrl: true,
+      assignments: {
+        select: {
+          client: {
+            select: { id: true, name: true, status: true },
+          },
+        },
+      },
+    },
+    orderBy: [{ role: 'asc' }, { name: 'asc' }],
+  });
+
+  // For each member, aggregate workload metrics
+  const workload = await Promise.all(teamMembers.map(async (member) => {
+    const clientIds = member.assignments.map((a: { client: { id: string } }) => a.client.id);
+
+    if (clientIds.length === 0) {
+      return {
+        ...member,
+        clients: [],
+        totals: { pendingApprovals: 0, openActionItems: 0, overdueInvoices: 0 },
+      };
+    }
+
+    const [pendingApprovals, openActionItems, overdueInvoices] = await Promise.all([
+      prisma.postDraft.count({
+        where: { clientId: { in: clientIds }, approvalStatus: 'PENDING', status: { notIn: ['ARCHIVED', 'PUBLISHED'] } },
+      }),
+      prisma.clientActionItem.count({
+        where: { clientId: { in: clientIds }, status: { in: ['PENDING', 'IN_PROGRESS'] } },
+      }),
+      prisma.invoice.count({
+        where: { clientId: { in: clientIds }, status: { in: ['SENT', 'OVERDUE'] }, dueDate: { lt: now } },
+      }),
+    ]);
+
+    // Per-client breakdown
+    const clients = await Promise.all(
+      member.assignments.map(async ({ client }: { client: { id: string; name: string; status: string } }) => {
+        const [cp, ca, ci] = await Promise.all([
+          prisma.postDraft.count({
+            where: { clientId: client.id, approvalStatus: 'PENDING', status: { notIn: ['ARCHIVED', 'PUBLISHED'] } },
+          }),
+          prisma.clientActionItem.count({
+            where: { clientId: client.id, status: { in: ['PENDING', 'IN_PROGRESS'] } },
+          }),
+          prisma.invoice.count({
+            where: { clientId: client.id, status: { in: ['SENT', 'OVERDUE'] }, dueDate: { lt: now } },
+          }),
+        ]);
+        return { ...client, pendingApprovals: cp, openActionItems: ca, overdueInvoices: ci };
+      })
+    );
+
+    return {
+      ...member,
+      clients,
+      totals: { pendingApprovals, openActionItems, overdueInvoices },
+    };
+  }));
+
+  res.json({ data: workload });
+}));
+
 // Manual trigger for smart alerts — OWNER only, useful for testing
 router.post('/alerts/run', requireRole(Role.OWNER), asyncHandler(async (req, res) => {
   const agencyId = req.user!.agencyId;

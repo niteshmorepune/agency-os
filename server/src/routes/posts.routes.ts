@@ -173,6 +173,54 @@ router.put('/:id/performance', asyncHandler(async (req, res) => {
   res.json({ data: updated });
 }));
 
+// Bulk approve / reject
+const bulkSchema = z.object({ ids: z.array(z.string()).min(1).max(100) });
+
+router.post('/bulk-approve', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(async (req, res) => {
+  const { ids } = bulkSchema.parse(req.body);
+  // Verify all posts belong to this agency
+  const count = await prisma.postDraft.count({
+    where: { id: { in: ids }, client: { agencyId: req.user!.agencyId } },
+  });
+  if (count !== ids.length) throw Object.assign(new Error('One or more posts not found'), { statusCode: 404 });
+
+  await prisma.postDraft.updateMany({
+    where: { id: { in: ids }, client: { agencyId: req.user!.agencyId } },
+    data: { approvalStatus: 'APPROVED', approvedById: req.user!.userId },
+  });
+  await logActivity({
+    agencyId: req.user!.agencyId,
+    userId: req.user!.userId,
+    action: 'BULK_APPROVED',
+    resourceType: 'PostDraft',
+    resourceId: ids[0],
+    metadata: { count: ids.length },
+  });
+  res.json({ message: `${ids.length} post${ids.length !== 1 ? 's' : ''} approved` });
+}));
+
+router.post('/bulk-reject', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(async (req, res) => {
+  const { ids } = bulkSchema.parse(req.body);
+  const count = await prisma.postDraft.count({
+    where: { id: { in: ids }, client: { agencyId: req.user!.agencyId } },
+  });
+  if (count !== ids.length) throw Object.assign(new Error('One or more posts not found'), { statusCode: 404 });
+
+  await prisma.postDraft.updateMany({
+    where: { id: { in: ids }, client: { agencyId: req.user!.agencyId } },
+    data: { approvalStatus: 'REJECTED' },
+  });
+  await logActivity({
+    agencyId: req.user!.agencyId,
+    userId: req.user!.userId,
+    action: 'BULK_REJECTED',
+    resourceType: 'PostDraft',
+    resourceId: ids[0],
+    metadata: { count: ids.length },
+  });
+  res.json({ message: `${ids.length} post${ids.length !== 1 ? 's' : ''} rejected` });
+}));
+
 // Publish post (mark as PUBLISHED)
 router.post('/:id/publish', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(async (req, res) => {
   const post = await prisma.postDraft.findFirst({ where: { id: req.params.id, client: { agencyId: req.user!.agencyId } } });

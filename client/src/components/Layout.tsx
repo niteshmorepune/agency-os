@@ -1,12 +1,13 @@
 import { ReactNode, useEffect } from 'react';
 import { Link, useLocation, useNavigate, NavLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutDashboard, Users, BarChart3, Zap, PenSquare, Settings, LogOut, Menu, X, ChevronRight, Bot, BookOpen, Receipt, Activity } from 'lucide-react';
+import { LayoutDashboard, Users, BarChart3, Zap, PenSquare, Settings, LogOut, Menu, X, ChevronRight, Bot, BookOpen, Receipt, Activity, Briefcase } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
 import { useUIStore } from '../store/ui.store';
 import { Role } from '@agencyos/shared';
 import NotificationBell from './NotificationBell';
+import FloatingActionButton from './FloatingActionButton';
 
 interface LayoutProps { children: ReactNode }
 interface AgencyBranding { name: string; logoUrl: string | null; primaryColor: string }
@@ -20,6 +21,7 @@ const nav = [
   { label: 'Optimize', icon: Zap, href: '/optimize', roles: 'all' },
   { label: 'Invoices', icon: Receipt, href: '/invoices', roles: [Role.OWNER, Role.ACCOUNT_MANAGER] },
   { label: 'Activity', icon: Activity, href: '/activity', roles: [Role.OWNER, Role.ACCOUNT_MANAGER] },
+  { label: 'Workload', icon: Briefcase, href: '/workload', roles: [Role.OWNER] },
   { label: 'Settings', icon: Settings, href: '/admin', roles: [Role.OWNER] },
   { label: 'Help & Guide', icon: BookOpen, href: '/help', roles: 'all' },
 ];
@@ -141,6 +143,7 @@ export default function Layout({ children }: LayoutProps) {
         </header>
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
+      {!isClient && <FloatingActionButton />}
     </div>
   );
 }

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PenSquare, Calendar, Lightbulb, Trash2, CheckCircle, XCircle, Clock, FileText, ChevronRight, Image, ThumbsUp, MessageCircle, BarChart2, Radio } from 'lucide-react';
+import { toast } from 'sonner';
+import { PenSquare, Calendar, Lightbulb, Trash2, CheckCircle, XCircle, Clock, FileText, ChevronRight, Image, ThumbsUp, MessageCircle, BarChart2, Radio, CheckSquare, Square, Check } from 'lucide-react';
 import { api } from '../api/client';
+import { useAuthStore } from '../store/auth.store';
 
 interface PostDraft {
   id: string;
@@ -57,8 +59,11 @@ const APPROVAL_META: Record<string, { label: string; cls: string; icon: React.Re
 
 export default function ContentHome() {
   const qc = useQueryClient();
+  const { user } = useAuthStore();
+  const canApprove = user?.role === 'OWNER' || user?.role === 'ACCOUNT_MANAGER';
   const [statusFilter, setStatusFilter] = useState('');
   const [clientFilter, setClientFilter] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const { data: clientsData } = useQuery({
     queryKey: ['clients'],
@@ -82,8 +87,47 @@ export default function ContentHome() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['posts'] }),
   });
 
+  const bulkApproveMutation = useMutation({
+    mutationFn: (ids: string[]) => api.post('/posts/bulk-approve', { ids }),
+    onSuccess: (_, ids) => {
+      qc.invalidateQueries({ queryKey: ['posts'] });
+      setSelected(new Set());
+      toast.success(`${ids.length} post${ids.length !== 1 ? 's' : ''} approved`);
+    },
+    onError: () => toast.error('Bulk approve failed'),
+  });
+
+  const bulkRejectMutation = useMutation({
+    mutationFn: (ids: string[]) => api.post('/posts/bulk-reject', { ids }),
+    onSuccess: (_, ids) => {
+      qc.invalidateQueries({ queryKey: ['posts'] });
+      setSelected(new Set());
+      toast.success(`${ids.length} post${ids.length !== 1 ? 's' : ''} rejected`);
+    },
+    onError: () => toast.error('Bulk reject failed'),
+  });
+
   const posts = postsData?.data ?? [];
   const total = postsData?.pagination?.total ?? 0;
+
+  const pendingPosts = posts.filter(p => p.approvalStatus === 'PENDING');
+  const allPendingSelected = pendingPosts.length > 0 && pendingPosts.every(p => selected.has(p.id));
+
+  function togglePost(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (allPendingSelected) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(pendingPosts.map(p => p.id)));
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -142,7 +186,47 @@ export default function ContentHome() {
         {total > 0 && (
           <span className="text-xs text-gray-400 ml-1">{total} post{total !== 1 ? 's' : ''}</span>
         )}
+
+        {/* Bulk select all pending */}
+        {canApprove && pendingPosts.length > 0 && (
+          <button
+            onClick={toggleAll}
+            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 ml-auto transition-colors"
+          >
+            {allPendingSelected ? <CheckSquare size={14} className="text-primary-700" /> : <Square size={14} />}
+            Select all pending ({pendingPosts.length})
+          </button>
+        )}
       </div>
+
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 bg-primary-50 border border-primary-200 rounded-xl px-4 py-3">
+          <span className="text-sm font-medium text-primary-800">{selected.size} selected</span>
+          <div className="flex gap-2 ml-auto">
+            <button
+              onClick={() => bulkApproveMutation.mutate([...selected])}
+              disabled={bulkApproveMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <Check size={14} /> Approve All
+            </button>
+            <button
+              onClick={() => bulkRejectMutation.mutate([...selected])}
+              disabled={bulkRejectMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <XCircle size={14} /> Reject All
+            </button>
+            <button
+              onClick={() => setSelected(new Set())}
+              className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Posts list */}
       {isLoading ? (
@@ -163,8 +247,18 @@ export default function ContentHome() {
         <div className="space-y-2">
           {posts.map(post => {
             const approval = APPROVAL_META[post.approvalStatus];
+            const isSelected = selected.has(post.id);
+            const isPending = post.approvalStatus === 'PENDING';
             return (
-              <div key={post.id} className="card p-4 flex items-start gap-4 hover:shadow-sm transition-shadow">
+              <div key={post.id} className={`card p-4 flex items-start gap-4 hover:shadow-sm transition-shadow ${isSelected ? 'ring-2 ring-primary-400 ring-offset-1' : ''}`}>
+                {canApprove && isPending && (
+                  <button
+                    onClick={() => togglePost(post.id)}
+                    className="mt-1 flex-shrink-0 text-gray-400 hover:text-primary-700 transition-colors"
+                  >
+                    {isSelected ? <CheckSquare size={16} className="text-primary-700" /> : <Square size={16} />}
+                  </button>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     {post.platforms.slice(0, 4).map(p => (

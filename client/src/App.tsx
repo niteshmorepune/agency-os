@@ -36,6 +36,7 @@ import PostingTimeOptimizer from './pages/PostingTimeOptimizer';
 import EngagementAnalyzer from './pages/EngagementAnalyzer';
 import SearchVisibility from './pages/SearchVisibility';
 import OnboardingForm from './pages/OnboardingForm';
+import WorkloadView from './pages/WorkloadView';
 
 const Spinner = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -111,6 +112,7 @@ export default function App() {
         <Route path="/content/new" element={<ProtectedRoute><ContentComposer /></ProtectedRoute>} />
         <Route path="/content/:postId/edit" element={<ProtectedRoute><ContentComposer /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+        <Route path="/workload" element={<AgencyOnlyRoute><WorkloadView /></AgencyOnlyRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
         <Route path="/invoices" element={<AgencyOnlyRoute><Invoices /></AgencyOnlyRoute>} />
