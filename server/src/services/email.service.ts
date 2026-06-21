@@ -244,3 +244,179 @@ export async function sendOnboardingEmail(params: {
     `,
   });
 }
+
+// ─── Smart Alert Emails ───────────────────────────────────────────────────────
+
+export async function sendPendingApprovalDigest(params: {
+  agencyId: string;
+  recipientEmails: string[];
+  posts: { caption: string; clientName: string; hoursAgo: number; id: string }[];
+}) {
+  let transport: ReturnType<typeof nodemailer.createTransport>;
+  let fromEmail: string;
+  let agencyName: string;
+  try {
+    ({ transport, fromEmail, agencyName } = await getTransport(params.agencyId));
+  } catch {
+    return;
+  }
+  const baseUrl = (process.env.APP_URL ?? 'https://nedsdrishti.in').replace(/\/$/, '');
+  const rows = params.posts.map(p => `
+    <tr>
+      <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#374151">${p.caption.slice(0, 90)}${p.caption.length > 90 ? '…' : ''}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#6b7280;white-space:nowrap">${p.clientName}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#d97706;white-space:nowrap;font-weight:600">${p.hoursAgo}h ago</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6"><a href="${baseUrl}/content/${p.id}/edit" style="color:#1a472a;font-size:12px;font-weight:600">Review →</a></td>
+    </tr>
+  `).join('');
+
+  for (const to of params.recipientEmails) {
+    await transport.sendMail({
+      from: `"${agencyName}" <${fromEmail}>`,
+      to,
+      subject: `⏳ ${params.posts.length} post${params.posts.length > 1 ? 's' : ''} waiting for approval over 24 hours`,
+      html: `
+        <div style="font-family:system-ui,sans-serif;max-width:620px;margin:0 auto;color:#111827">
+          <div style="background:#92400e;padding:24px 32px;border-radius:12px 12px 0 0">
+            <h1 style="color:#fff;margin:0;font-size:18px;font-weight:700">${agencyName}</h1>
+            <p style="color:#fde68a;margin:4px 0 0;font-size:13px">Approval Reminder</p>
+          </div>
+          <div style="background:#fff;padding:24px 32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px">
+            <p style="color:#374151;font-size:15px">The following posts have been waiting for your approval for more than 24 hours:</p>
+            <table style="width:100%;border-collapse:collapse;margin:16px 0">
+              <thead>
+                <tr style="background:#f9fafb">
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">Caption</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">Client</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">Waiting</th>
+                  <th style="padding:8px 12px"></th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+            <p style="text-align:center;margin:20px 0">
+              <a href="${baseUrl}/content" style="background:#1a472a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">Go to Content Studio →</a>
+            </p>
+          </div>
+        </div>
+      `,
+    }).catch(() => {});
+  }
+}
+
+export async function sendOverdueItemsDigest(params: {
+  agencyId: string;
+  recipientEmails: string[];
+  items: { title: string; clientName: string; clientId: string; dueDate: Date }[];
+}) {
+  let transport: ReturnType<typeof nodemailer.createTransport>;
+  let fromEmail: string;
+  let agencyName: string;
+  try {
+    ({ transport, fromEmail, agencyName } = await getTransport(params.agencyId));
+  } catch {
+    return;
+  }
+  const baseUrl = (process.env.APP_URL ?? 'https://nedsdrishti.in').replace(/\/$/, '');
+  const rows = params.items.map(item => `
+    <tr>
+      <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#374151">${item.title}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#6b7280">${item.clientName}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#dc2626;font-weight:600">${item.dueDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6"><a href="${baseUrl}/clients/${item.clientId}" style="color:#1a472a;font-size:12px;font-weight:600">View →</a></td>
+    </tr>
+  `).join('');
+
+  for (const to of params.recipientEmails) {
+    await transport.sendMail({
+      from: `"${agencyName}" <${fromEmail}>`,
+      to,
+      subject: `⚠️ ${params.items.length} action item${params.items.length > 1 ? 's are' : ' is'} overdue`,
+      html: `
+        <div style="font-family:system-ui,sans-serif;max-width:620px;margin:0 auto;color:#111827">
+          <div style="background:#7f1d1d;padding:24px 32px;border-radius:12px 12px 0 0">
+            <h1 style="color:#fff;margin:0;font-size:18px;font-weight:700">${agencyName}</h1>
+            <p style="color:#fca5a5;margin:4px 0 0;font-size:13px">Action Items Overdue</p>
+          </div>
+          <div style="background:#fff;padding:24px 32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px">
+            <p style="color:#374151;font-size:15px">The following action items have passed their due date and need attention:</p>
+            <table style="width:100%;border-collapse:collapse;margin:16px 0">
+              <thead>
+                <tr style="background:#fef2f2">
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">Task</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">Client</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">Due</th>
+                  <th style="padding:8px 12px"></th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+            <p style="text-align:center;margin:20px 0">
+              <a href="${baseUrl}/dashboard" style="background:#1a472a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">Go to Dashboard →</a>
+            </p>
+          </div>
+        </div>
+      `,
+    }).catch(() => {});
+  }
+}
+
+export async function sendInvoiceOverdueAlert(params: {
+  agencyId: string;
+  ownerEmail: string;
+  invoices: { invoiceNumber: string; clientName: string; total: number; currency: string; dueDate: Date; id: string }[];
+}) {
+  let transport: ReturnType<typeof nodemailer.createTransport>;
+  let fromEmail: string;
+  let agencyName: string;
+  try {
+    ({ transport, fromEmail, agencyName } = await getTransport(params.agencyId));
+  } catch {
+    return;
+  }
+  const baseUrl = (process.env.APP_URL ?? 'https://nedsdrishti.in').replace(/\/$/, '');
+  const rows = params.invoices.map(inv => {
+    const daysOverdue = Math.floor((Date.now() - inv.dueDate.getTime()) / 86_400_000);
+    return `
+    <tr>
+      <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#374151;font-weight:600">${inv.invoiceNumber}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#374151">${inv.clientName}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#374151">${inv.currency} ${inv.total.toLocaleString('en-IN')}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#dc2626;font-weight:600">${daysOverdue}d overdue</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6"><a href="${baseUrl}/invoices/${inv.id}" style="color:#1a472a;font-size:12px;font-weight:600">View →</a></td>
+    </tr>
+  `}).join('');
+
+  await transport.sendMail({
+    from: `"${agencyName}" <${fromEmail}>`,
+    to: params.ownerEmail,
+    subject: `💸 ${params.invoices.length} invoice${params.invoices.length > 1 ? 's are' : ' is'} overdue — action required`,
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:620px;margin:0 auto;color:#111827">
+        <div style="background:#1e3a5f;padding:24px 32px;border-radius:12px 12px 0 0">
+          <h1 style="color:#fff;margin:0;font-size:18px;font-weight:700">${agencyName}</h1>
+          <p style="color:#93c5fd;margin:4px 0 0;font-size:13px">Invoice Payment Reminder</p>
+        </div>
+        <div style="background:#fff;padding:24px 32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px">
+          <p style="color:#374151;font-size:15px">The following invoices are past their due date and payment has not been received:</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0">
+            <thead>
+              <tr style="background:#eff6ff">
+                <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">Invoice #</th>
+                <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">Client</th>
+                <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">Amount</th>
+                <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">Status</th>
+                <th style="padding:8px 12px"></th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <p style="text-align:center;margin:20px 0">
+            <a href="${baseUrl}/invoices" style="background:#1a472a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">Go to Invoices →</a>
+          </p>
+          <p style="color:#6b7280;font-size:12px;margin-top:16px">Consider following up with the client directly or sending a payment reminder.</p>
+        </div>
+      </div>
+    `,
+  });
+}

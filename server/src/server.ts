@@ -29,6 +29,7 @@ import webhooksRoutes from './routes/webhooks.routes';
 import onboardingRoutes from './routes/onboarding.routes';
 import helpRoutes from './routes/help.routes';
 import profileRoutes from './routes/profile.routes';
+import { startScheduler } from './lib/scheduler';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -119,6 +120,7 @@ app.use((err: Error & { statusCode?: number; errors?: unknown[] }, req: Request,
 
 app.listen(PORT, () => {
   logger.info({ msg: `Agency OS server running on port ${PORT}` });
+  startScheduler();
 });
 
 export default app;

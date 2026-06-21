@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
-import { Building2, Key, Users, Eye, EyeOff, Plus, Check, X, Pencil, Webhook, Trash2, RefreshCw, Copy, FlaskConical, UserCircle } from 'lucide-react';
+import { Building2, Key, Users, Eye, EyeOff, Plus, Check, X, Pencil, Webhook, Trash2, RefreshCw, Copy, FlaskConical, UserCircle, Bell, AlertTriangle, FileText, Clock } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Agency {
@@ -729,8 +729,115 @@ function ProfileTab() {
   );
 }
 
+// ── Alerts Tab ─────────────────────────────────────────────────────────────────
+function AlertsTab() {
+  const [running, setRunning] = useState(false);
+  const [results, setResults] = useState<string[]>([]);
+
+  const runAlerts = async () => {
+    setRunning(true);
+    setResults([]);
+    try {
+      const res = await api.post<{ message: string; results: string[] }>('/analytics/alerts/run', {});
+      setResults(res.results ?? []);
+      toast.success('Alerts run complete');
+    } catch {
+      toast.error('Failed to run alerts — check SMTP configuration');
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const alertTypes = [
+    {
+      icon: FileText,
+      color: 'bg-amber-50 text-amber-600',
+      title: 'Pending Approval Digest',
+      desc: 'Sent to all Owners and Account Managers when posts have been waiting for approval for over 24 hours.',
+    },
+    {
+      icon: AlertTriangle,
+      color: 'bg-red-50 text-red-600',
+      title: 'Overdue Action Items',
+      desc: 'Sent to all Owners and Account Managers listing every action item that is past its due date.',
+    },
+    {
+      icon: Clock,
+      color: 'bg-blue-50 text-blue-600',
+      title: 'Invoice Overdue Alert',
+      desc: 'Sent to the Owner when sent invoices pass their due date. Invoices are automatically marked OVERDUE.',
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-1">Smart Alert Emails</h3>
+        <p className="text-sm text-gray-500">
+          Automated daily emails keep your team on top of things that need attention — no manual checking required.
+        </p>
+      </div>
+
+      {/* Schedule info */}
+      <div className="flex items-start gap-3 p-4 bg-primary-50 border border-primary-100 rounded-xl">
+        <Clock size={16} className="text-primary-700 mt-0.5 flex-shrink-0" />
+        <div className="text-sm">
+          <p className="font-medium text-primary-800">Automatic schedule</p>
+          <p className="text-primary-700 mt-0.5">
+            Alert checks run every day at <strong>9:00 AM IST</strong>. Monthly performance reports are sent to clients on the <strong>1st of each month at 8:00 AM IST</strong> (requires Monthly schedule enabled per client in Client Settings).
+          </p>
+        </div>
+      </div>
+
+      {/* Alert types */}
+      <div className="space-y-3">
+        {alertTypes.map(alert => {
+          const Icon = alert.icon;
+          return (
+            <div key={alert.title} className="flex items-start gap-3 p-4 border border-gray-100 rounded-xl">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${alert.color}`}>
+                <Icon size={15} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-800">{alert.title}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{alert.desc}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Manual trigger */}
+      <div className="border-t border-gray-100 pt-4">
+        <p className="text-sm text-gray-600 mb-3">
+          Run all alert checks right now — useful for testing SMTP configuration or catching up on a missed day.
+        </p>
+        <button
+          onClick={runAlerts}
+          disabled={running}
+          className="btn-primary flex items-center gap-2 disabled:opacity-60"
+        >
+          {running ? <RefreshCw size={15} className="animate-spin" /> : <Bell size={15} />}
+          {running ? 'Running…' : 'Run Alerts Now'}
+        </button>
+
+        {results.length > 0 && (
+          <div className="mt-4 space-y-1.5">
+            {results.map((r, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                <Check size={13} className="text-green-600 flex-shrink-0" />
+                <span className="text-gray-700">{r}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
-type Tab = 'branding' | 'api-keys' | 'team' | 'webhooks' | 'profile';
+type Tab = 'branding' | 'api-keys' | 'team' | 'webhooks' | 'profile' | 'alerts';
 
 export default function Settings() {
   const user = useAuthStore(s => s.user);
@@ -766,6 +873,7 @@ export default function Settings() {
         <TabButton active={tab === 'api-keys'} onClick={() => setTab('api-keys')} icon={Key} label="API Keys" />
         <TabButton active={tab === 'team'} onClick={() => setTab('team')} icon={Users} label="Team" />
         <TabButton active={tab === 'webhooks'} onClick={() => setTab('webhooks')} icon={Webhook} label="Webhooks" />
+        <TabButton active={tab === 'alerts'} onClick={() => setTab('alerts')} icon={Bell} label="Alerts" />
         <TabButton active={tab === 'profile'} onClick={() => setTab('profile')} icon={UserCircle} label="My Profile" />
       </div>
 
@@ -774,6 +882,7 @@ export default function Settings() {
         {tab === 'api-keys'  && (isOwner ? <ApiKeysTab agency={agency} /> : <p className="text-gray-500">Owner access required.</p>)}
         {tab === 'team'      && <TeamTab />}
         {tab === 'webhooks'  && (isOwner ? <WebhooksTab /> : <p className="text-gray-500">Owner access required.</p>)}
+        {tab === 'alerts'    && (isOwner ? <AlertsTab /> : <p className="text-gray-500">Owner access required.</p>)}
         {tab === 'profile'   && <ProfileTab />}
       </div>
     </div>

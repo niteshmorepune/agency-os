@@ -1,7 +1,13 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, requireRole } from '../middleware/auth.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
+import { Role } from '@agencyos/shared';
+import {
+  sendPendingApprovalDigest,
+  sendOverdueItemsDigest,
+  sendInvoiceOverdueAlert,
+} from '../services/email.service';
 
 const router = Router();
 router.use(authenticate);
@@ -247,6 +253,74 @@ router.get('/today', asyncHandler(async (req, res) => {
       unreadMessages,
     },
   });
+}));
+
+// Manual trigger for smart alerts — OWNER only, useful for testing
+router.post('/alerts/run', requireRole(Role.OWNER), asyncHandler(async (req, res) => {
+  const agencyId = req.user!.agencyId;
+  const now = new Date();
+  const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const results: string[] = [];
+
+  // 1. Pending approvals
+  const stalePosts = await prisma.postDraft.findMany({
+    where: { client: { agencyId }, approvalStatus: 'PENDING', status: { notIn: ['ARCHIVED', 'PUBLISHED'] }, createdAt: { lt: cutoff24h } },
+    select: { id: true, caption: true, createdAt: true, client: { select: { name: true } } },
+  });
+  if (stalePosts.length > 0) {
+    const recipients = await prisma.user.findMany({ where: { agencyId, role: { in: ['OWNER', 'ACCOUNT_MANAGER'] }, isActive: true }, select: { email: true } });
+    if (recipients.length > 0) {
+      await sendPendingApprovalDigest({
+        agencyId,
+        recipientEmails: recipients.map(r => r.email),
+        posts: stalePosts.map(p => ({ id: p.id, caption: p.caption, clientName: p.client.name, hoursAgo: Math.floor((Date.now() - p.createdAt.getTime()) / 3_600_000) })),
+      });
+      results.push(`Pending approval digest sent (${stalePosts.length} posts)`);
+    }
+  } else {
+    results.push('No pending approvals >24h');
+  }
+
+  // 2. Overdue action items
+  const overdueItems = await prisma.clientActionItem.findMany({
+    where: { agencyId, status: { in: ['PENDING', 'IN_PROGRESS'] }, dueDate: { lt: now } },
+    select: { id: true, title: true, dueDate: true, clientId: true, client: { select: { name: true } } },
+  });
+  if (overdueItems.length > 0) {
+    const recipients = await prisma.user.findMany({ where: { agencyId, role: { in: ['OWNER', 'ACCOUNT_MANAGER'] }, isActive: true }, select: { email: true } });
+    if (recipients.length > 0) {
+      await sendOverdueItemsDigest({
+        agencyId,
+        recipientEmails: recipients.map(r => r.email),
+        items: overdueItems.map(i => ({ title: i.title, clientName: i.client.name, clientId: i.clientId, dueDate: i.dueDate! })),
+      });
+      results.push(`Overdue items digest sent (${overdueItems.length} items)`);
+    }
+  } else {
+    results.push('No overdue action items');
+  }
+
+  // 3. Overdue invoices
+  const overdueInvoices = await prisma.invoice.findMany({
+    where: { agencyId, status: 'SENT', dueDate: { lt: now } },
+    select: { id: true, invoiceNumber: true, total: true, currency: true, dueDate: true, client: { select: { name: true } } },
+  });
+  if (overdueInvoices.length > 0) {
+    await prisma.invoice.updateMany({ where: { id: { in: overdueInvoices.map(i => i.id) } }, data: { status: 'OVERDUE' } });
+    const owner = await prisma.user.findFirst({ where: { agencyId, role: 'OWNER', isActive: true }, select: { email: true } });
+    if (owner?.email) {
+      await sendInvoiceOverdueAlert({
+        agencyId,
+        ownerEmail: owner.email,
+        invoices: overdueInvoices.map(i => ({ id: i.id, invoiceNumber: i.invoiceNumber, clientName: i.client.name, total: i.total, currency: i.currency, dueDate: i.dueDate! })),
+      });
+      results.push(`Invoice overdue alert sent (${overdueInvoices.length} invoices, marked OVERDUE)`);
+    }
+  } else {
+    results.push('No overdue invoices');
+  }
+
+  res.json({ message: 'Alert run complete', results });
 }));
 
 export default router;
