@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download, RefreshCw, TrendingUp, FileText, CheckCircle, AlertTriangle, XCircle, Clock, Zap, CheckCircle2, Calendar, MessageSquare, Send, ThumbsUp, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Download, RefreshCw, TrendingUp, FileText, CheckCircle, AlertTriangle, XCircle, Clock, Zap, CheckCircle2, Calendar, MessageSquare, Send, ThumbsUp, MessageCircle, ChevronDown, ChevronUp, Archive, Target } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
@@ -45,6 +45,15 @@ interface ClientMessage {
   body: string;
   isRead: boolean;
   createdAt: string;
+}
+
+interface ClientGoal {
+  id: string;
+  title: string;
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+  month: string;
 }
 
 interface ReviewPost {
@@ -115,6 +124,7 @@ export default function ClientPortal() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
   const [downloading, setDownloading] = useState(false);
+  const [downloadingZip, setDownloadingZip] = useState(false);
   const [msgBody, setMsgBody] = useState('');
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -158,6 +168,36 @@ export default function ClientPortal() {
   const allReviewPosts = reviewPostsData?.data ?? [];
   const pendingReviewPosts = allReviewPosts.filter(p => !p.clientReviewStatus);
   const reviewedPosts = allReviewPosts.filter(p => p.clientReviewStatus);
+
+  const now2 = new Date();
+  const currentMonth = `${now2.getFullYear()}-${String(now2.getMonth() + 1).padStart(2, '0')}`;
+
+  const { data: goalsData } = useQuery({
+    queryKey: ['portal-goals', clientId],
+    queryFn: () => api.get<{ data: ClientGoal[] }>(`/client-portal/goals?month=${currentMonth}`),
+    enabled: !!clientId,
+    staleTime: 60_000,
+  });
+  const goals = goalsData?.data ?? [];
+
+  const downloadContentZip = async () => {
+    setDownloadingZip(true);
+    try {
+      const response = await fetch(`/api/client-portal/content/download?month=${currentMonth}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `content-${currentMonth}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Failed to download content pack');
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
 
   const reviewMutation = useMutation({
     mutationFn: ({ postId, action, feedback }: { postId: string; action: string; feedback?: string }) =>
@@ -277,6 +317,14 @@ export default function ClientPortal() {
               {downloading ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
               {downloading ? 'Generating…' : 'Download My Report'}
             </button>
+            <button
+              onClick={downloadContentZip}
+              disabled={downloadingZip}
+              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 transition-colors px-4 py-2 rounded-xl text-sm font-medium text-white backdrop-blur-sm"
+            >
+              {downloadingZip ? <RefreshCw size={14} className="animate-spin" /> : <Archive size={14} />}
+              {downloadingZip ? 'Packing…' : 'Download Content Pack'}
+            </button>
           </div>
         </div>
       </div>
@@ -303,6 +351,37 @@ export default function ClientPortal() {
           );
         })}
       </div>
+
+      {/* Monthly Goals */}
+      {goals.length > 0 && (
+        <div className="card p-6">
+          <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <Target size={16} className="text-primary-700" />
+            Monthly Goals — {new Date(currentMonth + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+          </h2>
+          <div className="space-y-4">
+            {goals.map(goal => {
+              const pct = goal.targetValue > 0 ? Math.min((goal.currentValue / goal.targetValue) * 100, 100) : 0;
+              const barColor = pct >= 100 ? 'bg-green-500' : pct >= 60 ? 'bg-primary-600' : pct >= 30 ? 'bg-yellow-400' : 'bg-gray-300';
+              return (
+                <div key={goal.id} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-700">{goal.title}</p>
+                    <div className="flex items-center gap-2">
+                      {pct >= 100 && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">Achieved!</span>}
+                      <span className="text-sm font-bold text-gray-700">{Math.round(pct)}%</span>
+                    </div>
+                  </div>
+                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all duration-700 ${barColor}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <p className="text-xs text-gray-400">{goal.currentValue} / {goal.targetValue}{goal.unit ? ` ${goal.unit}` : ''}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Platform scores */}

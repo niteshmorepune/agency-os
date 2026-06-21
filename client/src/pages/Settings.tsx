@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
-import { Building2, Key, Users, Eye, EyeOff, Plus, Check, X, Pencil, Webhook, Trash2, RefreshCw, Copy, FlaskConical, UserCircle, Bell, AlertTriangle, FileText, Clock } from 'lucide-react';
+import { Building2, Key, Users, Eye, EyeOff, Plus, Check, X, Pencil, Webhook, Trash2, RefreshCw, Copy, FlaskConical, UserCircle, Bell, AlertTriangle, FileText, Clock, Send } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Agency {
@@ -832,6 +832,60 @@ function AlertsTab() {
           </div>
         )}
       </div>
+
+      <ClientDigestCard />
+    </div>
+  );
+}
+
+function ClientDigestCard() {
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ sent: number; total: number; errors: string[] } | null>(null);
+
+  async function sendDigests() {
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await api.post<{ message: string; errors: string[] }>('/digest/email-clients', {});
+      const match = res.message.match(/(\d+)\/(\d+)/);
+      setResult({ sent: match ? parseInt(match[1]) : 0, total: match ? parseInt(match[2]) : 0, errors: res.errors ?? [] });
+    } catch (e: unknown) {
+      toast.error((e as Error).message || 'Failed to send digests');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="card p-6 space-y-4">
+      <div>
+        <h3 className="font-semibold text-gray-800">Per-Client Weekly Digest</h3>
+        <p className="text-sm text-gray-500 mt-1">
+          Sends a personalised weekly update email to each active client's contact email — posts published, audits completed, action items done, plus AI-generated highlights and next steps.
+        </p>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
+        Only clients with a contact email set (in Overview tab) will receive the digest. The digest also runs automatically every Sunday at 8 PM IST.
+      </div>
+
+      <button
+        onClick={sendDigests}
+        disabled={sending}
+        className="btn-secondary flex items-center gap-2"
+      >
+        {sending ? <RefreshCw size={15} className="animate-spin" /> : <Send size={15} />}
+        {sending ? 'Sending…' : 'Send Client Digests Now'}
+      </button>
+
+      {result && (
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-gray-700">Sent {result.sent} of {result.total} client digest{result.total !== 1 ? 's' : ''}</p>
+          {result.errors.map((e, i) => (
+            <p key={i} className="text-xs text-red-500">{e}</p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

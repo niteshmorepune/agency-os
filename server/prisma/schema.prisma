@@ -49,8 +49,9 @@ model User {
   role             Role               @default(AUDITOR)
   avatarUrl        String?
   passwordHash     String
-  lastLoginAt      DateTime?
-  isActive         Boolean            @default(true)
+  lastLoginAt         DateTime?
+  teamOnboardingAt    DateTime?
+  isActive            Boolean            @default(true)
   failedLoginCount Int                @default(0)
   lockedUntil      DateTime?
   createdAt        DateTime           @default(now())
@@ -127,6 +128,7 @@ model Client {
   messages              ClientMessage[]
   onboardingToken       OnboardingToken?
   socialAccounts        SocialAccount[]
+  goals                 ClientGoal[]
 }
 
 enum ClientStatus {
@@ -336,6 +338,23 @@ enum IdeaStatus {
   SAVED
   USED
   REJECTED
+}
+
+// ─── Client Goals ─────────────────────────────────────────────────────────────
+
+model ClientGoal {
+  id           String     @id @default(cuid())
+  agencyId     String
+  clientId     String
+  client       Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title        String
+  targetValue  Float
+  currentValue Float      @default(0)
+  unit         String     @default("")
+  month        String     // YYYY-MM
+  isArchived   Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 // ─── Social Publishing ────────────────────────────────────────────────────────

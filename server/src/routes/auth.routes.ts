@@ -55,4 +55,13 @@ router.patch('/profile', authenticate, asyncHandler(async (req, res) => {
   res.json({ data: updated });
 }));
 
+// Mark team onboarding complete for current user
+router.post('/complete-onboarding', authenticate, asyncHandler(async (req, res) => {
+  await prisma.user.update({
+    where: { id: req.user!.userId },
+    data: { teamOnboardingAt: new Date() },
+  });
+  res.json({ message: 'Onboarding marked complete' });
+}));
+
 export default router;

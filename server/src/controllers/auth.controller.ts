@@ -47,7 +47,7 @@ export async function logoutHandler(req: Request, res: Response): Promise<void> 
 export async function meHandler(req: Request, res: Response): Promise<void> {
   const user = await prisma.user.findUnique({
     where: { id: req.user!.userId },
-    select: { id: true, email: true, name: true, role: true, agencyId: true, avatarUrl: true, lastLoginAt: true },
+    select: { id: true, email: true, name: true, role: true, agencyId: true, avatarUrl: true, lastLoginAt: true, teamOnboardingAt: true },
   });
   if (!user) {
     res.status(404).json({ error: 'User not found' });

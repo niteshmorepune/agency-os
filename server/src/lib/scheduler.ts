@@ -13,6 +13,8 @@ import {
   publishToInstagram,
   publishToLinkedIn,
 } from '../services/publisher.service';
+import { sendClientDigestEmail } from '../services/email.service';
+import { runAITool } from '../services/ai/client';
 
 export function startScheduler(): void {
   // Auto-publish scheduled posts — every 5 minutes
@@ -32,7 +34,13 @@ export function startScheduler(): void {
     runMonthlyReports().catch(err => logger.error({ msg: 'Monthly reports failed', err }));
   });
 
-  logger.info({ msg: 'Scheduler started — auto-publish every 5min, daily 03:30 UTC, monthly 02:30 UTC on 1st' });
+  // Weekly per-client digest — every Sunday at 8:00 PM IST = 14:30 UTC
+  cron.schedule('30 14 * * 0', () => {
+    logger.info({ msg: 'Scheduler: running weekly client digests' });
+    runWeeklyClientDigests().catch(err => logger.error({ msg: 'Weekly client digests failed', err }));
+  });
+
+  logger.info({ msg: 'Scheduler started — auto-publish every 5min, daily 03:30 UTC, weekly Sunday 14:30 UTC, monthly 02:30 UTC on 1st' });
 }
 
 // ─── Auto-publish ─────────────────────────────────────────────────────────────
@@ -294,6 +302,97 @@ async function alertOverdueInvoices(): Promise<void> {
 
     logger.info({ msg: `Invoice overdue alert sent`, agencyId, count: invoices.length });
   }
+}
+
+// ─── Weekly per-client digest ─────────────────────────────────────────────────
+
+async function runWeeklyClientDigests(): Promise<void> {
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - 7);
+  const weekLabel = `${weekStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} – ${now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+
+  const clients = await prisma.client.findMany({
+    where: { status: 'ACTIVE', contactEmail: { not: null } },
+    select: { id: true, name: true, agencyId: true, contactEmail: true },
+  });
+
+  if (clients.length === 0) return;
+
+  // Build owner context per agency (needed for AI tool call)
+  const agencyOwners = new Map<string, { userId: string; agencyId: string; role: string; name: string; email: string }>();
+  for (const client of clients) {
+    if (!agencyOwners.has(client.agencyId)) {
+      const owner = await prisma.user.findFirst({
+        where: { agencyId: client.agencyId, role: 'OWNER', isActive: true },
+        select: { id: true, name: true, email: true },
+      });
+      if (owner) {
+        agencyOwners.set(client.agencyId, {
+          userId: owner.id,
+          agencyId: client.agencyId,
+          role: 'OWNER',
+          name: owner.name,
+          email: owner.email,
+        });
+      }
+    }
+  }
+
+  let sent = 0;
+  for (const client of clients) {
+    if (!client.contactEmail) continue;
+    const ownerCtx = agencyOwners.get(client.agencyId);
+    if (!ownerCtx) continue;
+
+    try {
+      const [postsPublished, auditsCompleted, actionItemsDone] = await Promise.all([
+        prisma.postDraft.count({ where: { clientId: client.id, status: 'PUBLISHED', updatedAt: { gte: weekStart } } }),
+        prisma.auditProject.count({ where: { clientId: client.id, status: 'COMPLETED', updatedAt: { gte: weekStart } } }),
+        prisma.clientActionItem.count({ where: { clientId: client.id, status: 'COMPLETED', updatedAt: { gte: weekStart } } }),
+      ]);
+
+      const recentPosts = await prisma.postDraft.findMany({
+        where: { clientId: client.id, approvalStatus: 'APPROVED', createdAt: { gte: weekStart } },
+        select: { caption: true, platforms: true },
+        take: 5,
+      });
+
+      const postSummary = recentPosts.map(p => `- [${(p.platforms as string[]).join('+')}] "${p.caption.slice(0, 80)}"`).join('\n') || 'No posts this week.';
+
+      const { result } = await runAITool({
+        toolId: 'client_digest',
+        systemPrompt: `You are a digital marketing agency writing a friendly weekly update for a client. Return ONLY a JSON object: {"highlights": "2-3 sentences on what was achieved this week, specific and positive", "nextSteps": "2-3 sentences on what's coming up next week"}. No markdown, no extra text.`,
+        userPrompt: `Client: ${client.name}\nWeek: ${weekLabel}\nPosts published: ${postsPublished}\nAudits completed: ${auditsCompleted}\nAction items done: ${actionItemsDone}\nRecent content:\n${postSummary}`,
+        inputs: { clientId: client.id, weekLabel },
+        user: ownerCtx as never,
+        clientId: client.id,
+        forceRefresh: true,
+      });
+
+      const clean = result.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+      const { highlights, nextSteps } = JSON.parse(clean) as { highlights: string; nextSteps: string };
+
+      await sendClientDigestEmail({
+        agencyId: client.agencyId,
+        clientName: client.name,
+        contactEmail: client.contactEmail,
+        weekLabel,
+        postsPublished,
+        auditsCompleted,
+        actionItemsDone,
+        highlights,
+        nextSteps,
+      });
+
+      sent++;
+      logger.info({ msg: `Weekly client digest sent`, clientId: client.id, clientName: client.name });
+    } catch (err) {
+      logger.error({ msg: `Weekly client digest failed for client`, clientId: client.id, err });
+    }
+  }
+
+  logger.info({ msg: `Weekly client digests complete`, sent, total: clients.length });
 }
 
 // ─── Monthly report auto-send ─────────────────────────────────────────────────

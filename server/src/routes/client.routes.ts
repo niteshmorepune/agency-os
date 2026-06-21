@@ -8,6 +8,7 @@ import { Role } from '@agencyos/shared';
 import { sendActionItemEmail, sendMessageEmail } from '../services/email.service';
 import crypto from 'crypto';
 import { sendOnboardingEmail } from '../services/email.service';
+import goalsRouter from './goals.routes';
 
 const router = Router();
 router.use(authenticate);
@@ -171,5 +172,8 @@ router.get('/:id/onboarding', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asy
   if (!client) { res.status(404).json({ error: 'Client not found' }); return; }
   res.json({ data: client });
 }));
+
+// Goals — mounted under /:id so goalsRouter can read clientId from params
+router.use('/:id', goalsRouter);
 
 export default router;

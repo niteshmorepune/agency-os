@@ -420,3 +420,64 @@ export async function sendInvoiceOverdueAlert(params: {
     `,
   });
 }
+
+export async function sendClientDigestEmail(params: {
+  agencyId: string;
+  clientName: string;
+  contactEmail: string;
+  weekLabel: string;
+  postsPublished: number;
+  auditsCompleted: number;
+  actionItemsDone: number;
+  highlights: string;
+  nextSteps: string;
+}) {
+  const { transport, fromEmail, agencyName } = await getTransport(params.agencyId);
+  const baseUrl = process.env.FRONTEND_URL ?? 'https://nedsdrishti.in';
+
+  await transport.sendMail({
+    from: `"${agencyName}" <${fromEmail}>`,
+    to: params.contactEmail,
+    subject: `Your Weekly Update from ${agencyName} — ${params.weekLabel}`,
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#111827">
+        <div style="background:#1a472a;padding:28px 32px;border-radius:12px 12px 0 0">
+          <h1 style="color:#fff;margin:0;font-size:20px;font-weight:700">${agencyName}</h1>
+          <p style="color:#a7f3d0;margin:4px 0 0;font-size:13px">Weekly Update for ${params.clientName} · ${params.weekLabel}</p>
+        </div>
+        <div style="background:#fff;padding:28px 32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px">
+          <p style="color:#374151;font-size:15px">Hi ${params.clientName} team,</p>
+          <p style="color:#374151;font-size:14px">Here's what we accomplished for you this week.</p>
+
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0">
+            <div style="background:#f0f9f0;border-radius:8px;padding:16px;text-align:center">
+              <p style="font-size:28px;font-weight:700;color:#1a472a;margin:0">${params.postsPublished}</p>
+              <p style="font-size:12px;color:#374151;margin:4px 0 0">Posts Published</p>
+            </div>
+            <div style="background:#eff6ff;border-radius:8px;padding:16px;text-align:center">
+              <p style="font-size:28px;font-weight:700;color:#1d4ed8;margin:0">${params.auditsCompleted}</p>
+              <p style="font-size:12px;color:#374151;margin:4px 0 0">Audits Done</p>
+            </div>
+            <div style="background:#fef3c7;border-radius:8px;padding:16px;text-align:center">
+              <p style="font-size:28px;font-weight:700;color:#d97706;margin:0">${params.actionItemsDone}</p>
+              <p style="font-size:12px;color:#374151;margin:4px 0 0">Actions Completed</p>
+            </div>
+          </div>
+
+          <h3 style="font-size:15px;color:#1a472a;margin:20px 0 8px">Highlights</h3>
+          <div style="font-size:14px;color:#374151;line-height:1.7;white-space:pre-wrap">${params.highlights}</div>
+
+          <h3 style="font-size:15px;color:#1a472a;margin:20px 0 8px">What's Next</h3>
+          <div style="font-size:14px;color:#374151;line-height:1.7;white-space:pre-wrap">${params.nextSteps}</div>
+
+          <p style="text-align:center;margin:24px 0">
+            <a href="${baseUrl}/portal" style="background:#1a472a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">View Your Portal →</a>
+          </p>
+          <p style="color:#6b7280;font-size:12px;margin-top:16px;border-top:1px solid #f3f4f6;padding-top:16px">
+            You're receiving this because ${agencyName} manages your digital presence. Reply to this email with any questions.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}

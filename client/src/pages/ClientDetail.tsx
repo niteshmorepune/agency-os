@@ -1094,7 +1094,197 @@ function SocialAccountsTab({ clientId }: { clientId: string }) {
   );
 }
 
-type Tab = 'overview' | 'platforms' | 'team' | 'reports' | 'action-items' | 'messages' | 'social';
+interface ClientGoal {
+  id: string;
+  title: string;
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+  month: string;
+}
+
+const goalSchema = z.object({
+  title: z.string().min(1).max(300),
+  targetValue: z.coerce.number().positive(),
+  currentValue: z.coerce.number().min(0).optional(),
+  unit: z.string().max(50).optional(),
+  month: z.string().regex(/^\d{4}-\d{2}$/),
+});
+type GoalForm = z.infer<typeof goalSchema>;
+
+function GoalsTab({ clientId }: { clientId: string }) {
+  const { user } = useAuthStore();
+  const qc = useQueryClient();
+  const canManage = user?.role === 'OWNER' || user?.role === 'ACCOUNT_MANAGER';
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  );
+  const [showForm, setShowForm] = useState(false);
+  const [editGoal, setEditGoal] = useState<ClientGoal | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['client-goals', clientId, selectedMonth],
+    queryFn: () => api.get<{ data: ClientGoal[] }>(`/clients/${clientId}/goals?month=${selectedMonth}`),
+    staleTime: 30_000,
+  });
+  const goals = data?.data ?? [];
+
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<GoalForm>({
+    resolver: zodResolver(goalSchema),
+    defaultValues: { month: selectedMonth, currentValue: 0 },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: (form: GoalForm) =>
+      editGoal
+        ? api.put(`/clients/${clientId}/goals/${editGoal.id}`, form)
+        : api.post(`/clients/${clientId}/goals`, form),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['client-goals', clientId] });
+      toast.success(editGoal ? 'Goal updated' : 'Goal created');
+      reset({ month: selectedMonth, currentValue: 0 });
+      setShowForm(false);
+      setEditGoal(null);
+    },
+    onError: () => toast.error('Failed to save goal'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/clients/${clientId}/goals/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['client-goals', clientId] }); toast.success('Goal removed'); },
+  });
+
+  function startEdit(goal: ClientGoal) {
+    setEditGoal(goal);
+    setValue('title', goal.title);
+    setValue('targetValue', goal.targetValue);
+    setValue('currentValue', goal.currentValue);
+    setValue('unit', goal.unit);
+    setValue('month', goal.month);
+    setShowForm(true);
+  }
+
+  function cancelForm() {
+    setShowForm(false);
+    setEditGoal(null);
+    reset({ month: selectedMonth, currentValue: 0 });
+  }
+
+  // Generate last 6 months for selector
+  const months: string[] = [];
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+
+  return (
+    <div className="space-y-5 max-w-2xl">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <select
+            className="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+            value={selectedMonth}
+            onChange={e => setSelectedMonth(e.target.value)}
+          >
+            {months.map(m => (
+              <option key={m} value={m}>{new Date(m + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</option>
+            ))}
+          </select>
+          <span className="text-xs text-gray-400">{goals.length} goal{goals.length !== 1 ? 's' : ''}</span>
+        </div>
+        {canManage && (
+          <button onClick={() => { setEditGoal(null); reset({ month: selectedMonth, currentValue: 0 }); setShowForm(v => !v); }} className="btn-secondary text-sm flex items-center gap-2">
+            <Plus size={15} /> Add Goal
+          </button>
+        )}
+      </div>
+
+      {showForm && (
+        <div className="card p-5 space-y-3 border-2 border-primary-200">
+          <h4 className="font-medium text-gray-800 text-sm">{editGoal ? 'Edit Goal' : 'New Goal'}</h4>
+          <form onSubmit={handleSubmit(d => saveMutation.mutate(d))} className="space-y-3">
+            <div>
+              <label className="label">Goal Title</label>
+              <input {...register('title')} className="input" placeholder="e.g. Grow Instagram followers by 15%" />
+              {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="label">Target</label>
+                <input {...register('targetValue')} type="number" min="0" step="any" className="input" placeholder="100" />
+                {errors.targetValue && <p className="text-red-500 text-xs mt-1">{errors.targetValue.message}</p>}
+              </div>
+              <div>
+                <label className="label">Current</label>
+                <input {...register('currentValue')} type="number" min="0" step="any" className="input" placeholder="0" />
+              </div>
+              <div>
+                <label className="label">Unit</label>
+                <input {...register('unit')} className="input" placeholder="followers, reviews…" />
+              </div>
+            </div>
+            <div>
+              <label className="label">Month</label>
+              <input {...register('month')} type="month" className="input" />
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" disabled={saveMutation.isPending} className="btn-primary text-sm">
+                {saveMutation.isPending ? 'Saving…' : (editGoal ? 'Update Goal' : 'Create Goal')}
+              </button>
+              <button type="button" onClick={cancelForm} className="btn-secondary text-sm">Cancel</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+      ) : goals.length === 0 ? (
+        <div className="card p-12 text-center">
+          <TrendingUp size={32} className="mx-auto text-gray-300 mb-3" />
+          <p className="text-gray-600 font-medium text-sm">No goals set for this month</p>
+          <p className="text-gray-400 text-xs mt-1">Add measurable goals so the client can track progress in their portal.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {goals.map(goal => {
+            const pct = goal.targetValue > 0 ? Math.min((goal.currentValue / goal.targetValue) * 100, 100) : 0;
+            const barColor = pct >= 100 ? 'bg-green-500' : pct >= 60 ? 'bg-primary-600' : pct >= 30 ? 'bg-yellow-400' : 'bg-gray-300';
+            return (
+              <div key={goal.id} className="card p-5 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-800 text-sm">{goal.title}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {goal.currentValue} / {goal.targetValue}{goal.unit ? ` ${goal.unit}` : ''} · {Math.round(pct)}%
+                    </p>
+                  </div>
+                  {pct >= 100 && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium flex-shrink-0">Achieved!</span>
+                  )}
+                  {canManage && (
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button onClick={() => startEdit(goal)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"><Edit2 size={13} /></button>
+                      <button onClick={() => { if (confirm('Remove this goal?')) deleteMutation.mutate(goal.id); }} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={13} /></button>
+                    </div>
+                  )}
+                </div>
+                <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <p className="text-xs text-gray-400">Goals are visible in the client portal as progress bars. Update current values regularly.</p>
+    </div>
+  );
+}
+
+type Tab = 'overview' | 'platforms' | 'team' | 'reports' | 'action-items' | 'messages' | 'social' | 'goals';
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -1140,6 +1330,7 @@ export default function ClientDetail() {
     { id: 'overview', label: 'Overview', icon: <Building2 size={16} /> },
     { id: 'platforms', label: 'Platforms', icon: <BarChart2 size={16} /> },
     { id: 'social', label: 'Social Accounts', icon: <Share2 size={16} /> },
+    { id: 'goals', label: 'Goals', icon: <TrendingUp size={16} /> },
     { id: 'team', label: 'Team', icon: <Users size={16} /> },
     { id: 'action-items', label: 'Action Items', icon: <CheckCircle2 size={16} /> },
     { id: 'messages', label: 'Messages', icon: <MessageSquare size={16} /> },
@@ -1233,6 +1424,7 @@ export default function ClientDetail() {
         {activeTab === 'overview' && <OverviewTab client={client} onSaved={() => qc.invalidateQueries({ queryKey: ['client', id] })} />}
         {activeTab === 'platforms' && <PlatformsTab clientId={client.id} />}
         {activeTab === 'social' && <SocialAccountsTab clientId={client.id} />}
+        {activeTab === 'goals' && <GoalsTab clientId={client.id} />}
         {activeTab === 'team' && <TeamTab client={client} />}
         {activeTab === 'action-items' && <ActionItemsTab clientId={client.id} />}
         {activeTab === 'messages' && <MessagesTab clientId={client.id} />}

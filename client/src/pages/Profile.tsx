@@ -4,9 +4,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Eye, EyeOff, User, Lock, Check } from 'lucide-react';
+import { Eye, EyeOff, User, Lock, Check, Moon, Sun } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuthStore } from '../store/auth.store';
+import { toggleDarkMode, isDarkMode } from '../hooks/useDarkMode';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name required').max(100),
@@ -31,6 +32,7 @@ export default function Profile() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [dark, setDark] = useState(isDarkMode);
 
   const { register: regProfile, handleSubmit: handleProfile, formState: { errors: profileErrors, isDirty: profileDirty } } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -99,6 +101,25 @@ export default function Profile() {
             {profileMutation.isSuccess && <span className="flex items-center gap-1 text-green-600 text-sm"><Check size={16} /> Saved</span>}
           </div>
         </form>
+      </div>
+
+      {/* Appearance */}
+      <div className="card p-6">
+        <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2 mb-4">
+          {dark ? <Moon size={16} /> : <Sun size={16} />} Appearance
+        </h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Dark Mode</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Preference is saved in your browser</p>
+          </div>
+          <button
+            onClick={() => { const next = toggleDarkMode(); setDark(next); }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${dark ? 'bg-primary-700' : 'bg-gray-300'}`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${dark ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
       </div>
 
       {/* Change password */}
