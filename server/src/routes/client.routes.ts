@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
+import { serviceKeyAuth } from '../middleware/service-key.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
@@ -14,7 +15,20 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', asyncHandler(ctrl.listClients));
-router.post('/', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.createClient));
+// POST /api/clients accepts either normal session auth OR a service key from
+// the CRM, allowing the CRM to provision clients on deal won.
+router.post('/', asyncHandler(async (req, res, next) => {
+  if (req.headers['x-service-key']) {
+    return serviceKeyAuth(req, res, next);
+  }
+  // Normal auth: already authenticated by router.use(authenticate) above;
+  // enforce role restriction manually here.
+  if (!req.user || (req.user.role !== Role.OWNER && req.user.role !== Role.ACCOUNT_MANAGER)) {
+    res.status(403).json({ error: 'Insufficient permissions' });
+    return;
+  }
+  next();
+}), asyncHandler(ctrl.createClient));
 router.get('/:id', asyncHandler(ctrl.getClient));
 router.put('/:id', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.updateClient));
 router.delete('/:id', requireRole(Role.OWNER), asyncHandler(ctrl.deleteClient));

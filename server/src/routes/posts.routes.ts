@@ -1,6 +1,7 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
+import { serviceKeyAuth } from '../middleware/service-key.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
 import { createNotification } from '../lib/notify';
@@ -10,7 +11,19 @@ import { Role } from '@agencyos/shared';
 import DOMPurify from 'isomorphic-dompurify';
 
 const router = Router();
-router.use(authenticate);
+
+// Accept service key (from SMDost brief-push) OR normal session auth.
+// Service key grants OWNER-level access, which is safe for server-to-server
+// calls from SMDost where we trust the source.
+const serviceKeyOrAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
+  if (req.headers['x-service-key']) {
+    void serviceKeyAuth(req, res, next);
+  } else {
+    authenticate(req, res, next);
+  }
+};
+
+router.use(serviceKeyOrAuthenticate);
 
 const postSchema = z.object({
   clientId: z.string(),
