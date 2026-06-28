@@ -1,14 +1,27 @@
 import crypto from 'crypto';
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
+import { serviceKeyAuth } from '../middleware/service-key.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
 import { deliverWebhook, WEBHOOK_EVENTS } from '../services/webhook.service';
 import { Role } from '@agencyos/shared';
 
 const router = Router();
-router.use(authenticate);
+
+// Accept service key (from NEDS CRM to register/read webhook subscriptions)
+// OR normal session auth. requireRole(OWNER) still runs after — service key
+// resolves as OWNER so it passes automatically.
+const serviceKeyOrAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
+  if (req.headers['x-service-key']) {
+    void serviceKeyAuth(req, res, next);
+  } else {
+    authenticate(req, res, next);
+  }
+};
+
+router.use(serviceKeyOrAuthenticate);
 router.use(requireRole(Role.OWNER));
 
 const webhookSchema = z.object({
