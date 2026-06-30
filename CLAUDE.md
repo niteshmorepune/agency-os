@@ -64,6 +64,14 @@ Full-stack digital marketing platform. Monorepo: client/ (React+Vite), server/ (
 - `ClientGoal` — monthly goals per client (agencyId, clientId, title, targetValue, currentValue, unit, month YYYY-MM, isArchived)
 - `User.teamOnboardingAt DateTime?` — null until team member completes first-login onboarding modal
 
+## NEDS CRM integration (server-to-server)
+- Service key auth via `server/src/middleware/service-key.middleware.ts` — `X-Service-Key` header checked against `SERVICE_API_KEY` env var; resolves `req.user` as the agency OWNER
+- Routes that accept service key OR session auth use a `serviceKeyOrAuthenticate` function at **router level** (NOT inside individual route handlers — `router.use(authenticate)` blocks the handler before it can check for the key)
+- `POST /api/clients` — CRM provisions a client on deal won (OWNER/AM role required; service key satisfies this)
+- `POST /api/users` — CRM creates a CLIENT-role portal user (OWNER required; service key satisfies this)
+- `GET /api/sso?token=...` — CRM issues a short-lived HS256 JWT; Drishti verifies it against `PORTAL_SSO_SECRET`, issues auth cookies, redirects to `FRONTEND_URL`
+- Both `SERVICE_API_KEY` and `PORTAL_SSO_SECRET` must be set in `.env` (see `.env.example`)
+
 ## New API routes
 - `POST /api/onboarding/:token` / `GET /api/onboarding/:token` — public, no auth, token-based onboarding form
 - `GET|POST /api/clients/:id/action-items` — CRUD for action items; POST fires email to client
@@ -82,6 +90,7 @@ Full-stack digital marketing platform. Monorepo: client/ (React+Vite), server/ (
 - `GET /api/client-portal/content/download` — streams ZIP of captions.csv + image-urls.txt + README.txt (CLIENT auth)
 - `POST /api/digest/email-clients` — sends per-client AI weekly digest to all active clients with contactEmail (OWNER only)
 - `POST /api/auth/complete-onboarding` — marks teamOnboardingAt in DB (any auth)
+- `GET /api/sso?token=...` — CRM SSO login; verifies HS256 JWT, issues Drishti auth cookies, redirects to frontend
 
 ## New AI tools
 - `posting_time` — deterministic schedule grid from `postingTimes.ts`, optional Claude custom advice
