@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { authenticate, requireOwner } from '../middleware/auth.middleware';
@@ -8,7 +8,19 @@ import { prisma } from '../lib/prisma';
 import { hashPassword } from '../services/auth.service';
 
 const router = Router();
-router.use(authenticate, requireOwner);
+
+// POST /api/users also accepts a service key from the CRM so it can create a
+// CLIENT-role portal user on deal won. serviceKeyAuth resolves as OWNER, which
+// satisfies requireOwner for all subsequent routes.
+const serviceKeyOrAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
+  if (req.headers['x-service-key']) {
+    void serviceKeyAuth(req, res, next);
+  } else {
+    authenticate(req, res, next);
+  }
+};
+
+router.use(serviceKeyOrAuthenticate, requireOwner);
 
 router.get('/', asyncHandler(async (req, res) => {
   const users = await prisma.user.findMany({
@@ -19,18 +31,7 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json({ data: users });
 }));
 
-// POST /api/users accepts either normal owner-session auth OR a service key so
-// the CRM can create a CLIENT-role portal user when provisioning a new client.
-router.post('/', asyncHandler(async (req, res, next) => {
-  if (req.headers['x-service-key']) {
-    return serviceKeyAuth(req, res, next);
-  }
-  if (req.user?.role !== 'OWNER') {
-    res.status(403).json({ error: 'Owner access required' });
-    return;
-  }
-  next();
-}), asyncHandler(async (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   const schema = z.object({ email: z.string().email(), name: z.string().min(1), role: z.enum(['ACCOUNT_MANAGER', 'CONTENT_CREATOR', 'SEO_ANALYST', 'CLIENT']), password: z.string().min(8) });
   const { email, name, role, password } = schema.parse(req.body);
   const passwordHash = await hashPassword(password);
