@@ -112,7 +112,7 @@ export default function FloatingActionButton() {
 
   return (
     <>
-      <div ref={ref} className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+      <div ref={ref} className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3 pointer-events-none">
         {/* Action buttons — slide up when open */}
         <div className={`flex flex-col items-end gap-2 transition-all duration-200 ${open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
           {ACTIONS.map(action => {
@@ -133,7 +133,7 @@ export default function FloatingActionButton() {
         {/* Main FAB */}
         <button
           onClick={() => setOpen(v => !v)}
-          className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200 ${open ? 'bg-gray-800 hover:bg-gray-900 rotate-45' : 'bg-primary-800 hover:bg-primary-900'} text-white`}
+          className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200 pointer-events-auto ${open ? 'bg-gray-800 hover:bg-gray-900 rotate-45' : 'bg-primary-800 hover:bg-primary-900'} text-white`}
           aria-label={open ? 'Close quick add' : 'Quick add'}
         >
           <Plus size={24} className={`transition-transform duration-200 ${open ? 'rotate-45' : 'rotate-0'}`} />
