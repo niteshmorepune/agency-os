@@ -49,9 +49,9 @@ model User {
   role             Role               @default(AUDITOR)
   avatarUrl        String?
   passwordHash     String
-  lastLoginAt         DateTime?
-  teamOnboardingAt    DateTime?
-  isActive            Boolean            @default(true)
+  lastLoginAt      DateTime?
+  teamOnboardingAt DateTime?
+  isActive         Boolean            @default(true)
   failedLoginCount Int                @default(0)
   lockedUntil      DateTime?
   createdAt        DateTime           @default(now())
@@ -143,7 +143,7 @@ model ClientAssignment {
   clientId  String
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@unique([clientId, userId])
@@ -275,30 +275,30 @@ model PlatformScoreHistory {
 // ─── Content Studio ───────────────────────────────────────────────────────────
 
 model PostDraft {
-  id                   String              @id @default(cuid())
-  clientId             String
-  client               Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  createdById          String
-  createdBy            User                @relation(fields: [createdById], references: [id])
-  platforms            Platform[]
-  caption              String
-  hashtags             String[]
-  mediaUrls            String[]
-  altTexts             String[]
-  platformOverrides    Json?
-  scheduledAt          DateTime?
-  status               PostStatus          @default(DRAFT)
-  approvalStatus       ApprovalStatus      @default(PENDING)
-  approvedById         String?
-  approvedBy           User?               @relation("PostApprovals", fields: [approvedById], references: [id])
-  notes                String              @default("")
-  aiGenerated          Boolean             @default(false)
-  performance          Json?
-  clientReviewStatus   ClientReviewStatus?
-  clientFeedback       String?
-  publishedAt          DateTime?
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
+  id                 String              @id @default(cuid())
+  clientId           String
+  client             Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdById        String
+  createdBy          User                @relation(fields: [createdById], references: [id])
+  platforms          Platform[]
+  caption            String
+  hashtags           String[]
+  mediaUrls          String[]
+  altTexts           String[]
+  platformOverrides  Json?
+  scheduledAt        DateTime?
+  status             PostStatus          @default(DRAFT)
+  approvalStatus     ApprovalStatus      @default(PENDING)
+  approvedById       String?
+  approvedBy         User?               @relation("PostApprovals", fields: [approvedById], references: [id], onDelete: SetNull)
+  notes              String              @default("")
+  aiGenerated        Boolean             @default(false)
+  performance        Json?
+  clientReviewStatus ClientReviewStatus?
+  clientFeedback     String?
+  publishedAt        DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 }
 
 enum PostStatus {
@@ -343,18 +343,18 @@ enum IdeaStatus {
 // ─── Client Goals ─────────────────────────────────────────────────────────────
 
 model ClientGoal {
-  id           String     @id @default(cuid())
+  id           String   @id @default(cuid())
   agencyId     String
   clientId     String
-  client       Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   title        String
   targetValue  Float
-  currentValue Float      @default(0)
-  unit         String     @default("")
-  month        String     // YYYY-MM
-  isArchived   Boolean    @default(false)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  currentValue Float    @default(0)
+  unit         String   @default("")
+  month        String // YYYY-MM
+  isArchived   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // ─── Social Publishing ────────────────────────────────────────────────────────
@@ -366,8 +366,8 @@ model SocialAccount {
   client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   platform       Platform
   accountName    String
-  accountId      String    // Page ID / IG Business ID / LinkedIn URN suffix
-  accessToken    String    // AES-256 encrypted
+  accountId      String // Page ID / IG Business ID / LinkedIn URN suffix
+  accessToken    String // AES-256 encrypted
   tokenExpiresAt DateTime?
   isActive       Boolean   @default(true)
   createdAt      DateTime  @default(now())
@@ -399,7 +399,7 @@ enum PublishStatus {
 model AIUsageLog {
   id           String   @id @default(cuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id])
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   clientId     String?
   client       Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   toolId       String
@@ -568,7 +568,7 @@ model ActivityLog {
   id           String   @id @default(cuid())
   agencyId     String
   userId       String
-  user         User     @relation(fields: [userId], references: [id])
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   action       String
   resourceType String
   resourceId   String

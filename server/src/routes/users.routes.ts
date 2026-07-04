@@ -65,7 +65,7 @@ router.delete('/:id', asyncHandler(async (req, res) => {
     res.json({ message: 'User deleted' });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
-      res.status(409).json({ error: 'This user has existing content. Deactivate them instead of deleting.' });
+      res.status(409).json({ error: 'This user has authored posts or audit notes. Deactivate them instead — their content must be preserved.' });
       return;
     }
     throw err;
