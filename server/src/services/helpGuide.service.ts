@@ -676,7 +676,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
   <div class="section-icon" style="background:#f3f4f6;color:#374151;">⚙️</div>
   <div>
     <div class="section-title">9. Settings</div>
-    <div class="section-count">6 articles</div>
+    <div class="section-count">8 articles</div>
   </div>
 </div>
 
@@ -700,6 +700,30 @@ const GUIDE_HTML = `<!DOCTYPE html>
   </ol>
   <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">From the Dashboard, the Setup Reminder "Go to Settings →" link opens directly on the API Keys tab for quick first-time setup.</span></div>
   <div class="note"><span class="note-label">NOTE</span><span class="note-text">Never share API keys over Slack or email. Use this Settings page only.</span></div>
+</div>
+
+<div class="article">
+  <div class="article-title">Deactivating or reactivating a team member <span class="role-badge">Owner</span></div>
+  <p class="para">Deactivating a member blocks their login immediately without deleting their account or reassigning their work.</p>
+  <ol class="steps">
+    <li><span class="step-num">1</span><span class="step-text">Go to <strong>Settings → Team</strong></span></li>
+    <li><span class="step-num">2</span><span class="step-text">Click <strong>Deactivate</strong> next to the member's name — their login is blocked immediately</span></li>
+    <li><span class="step-num">3</span><span class="step-text">To restore access, click <strong>Reactivate</strong> on the same row</span></li>
+  </ol>
+  <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">Use Deactivate for temporary suspension (e.g. someone on leave) and Remove for permanent departures.</span></div>
+  <div class="note"><span class="note-label">NOTE</span><span class="note-text">You cannot deactivate your own account. The Deactivate button is hidden on your own row.</span></div>
+</div>
+
+<div class="article">
+  <div class="article-title">Removing a team member permanently <span class="role-badge">Owner</span></div>
+  <p class="para">Permanently removes the member's account. Their posts and audit notes are reassigned to the agency Owner so no work is lost.</p>
+  <ol class="steps">
+    <li><span class="step-num">1</span><span class="step-text">Go to <strong>Settings → Team</strong></span></li>
+    <li><span class="step-num">2</span><span class="step-text">Click the <strong>trash icon</strong> on the member's row</span></li>
+    <li><span class="step-num">3</span><span class="step-text">An inline confirmation appears — click <strong>Yes, remove</strong> to confirm or <strong>Cancel</strong> to abort</span></li>
+    <li><span class="step-num">4</span><span class="step-text">The account is deleted and cannot be recovered</span></li>
+  </ol>
+  <div class="note"><span class="note-label">NOTE</span><span class="note-text">Owner accounts cannot be removed. To remove yourself, ask another Owner to do it.</span></div>
 </div>
 
 <div class="article">

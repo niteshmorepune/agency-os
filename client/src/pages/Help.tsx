@@ -478,6 +478,25 @@ const SECTIONS: Section[] = [
         ],
       },
       {
+        title: 'Deactivating or reactivating a team member',
+        role: 'Owner',
+        content: [
+          { type: 'para', text: 'Deactivating a member blocks their login immediately without deleting their account or reassigning their work.' },
+          { type: 'steps', items: ['Go to Settings → Team', 'Find the team member in the list', 'Click "Deactivate" next to their name — their login is blocked immediately', 'To restore access, click "Reactivate" on the same row'] },
+          { type: 'tip', text: 'Use Deactivate for temporary suspension (e.g. someone on leave) and Remove for permanent departures.' },
+          { type: 'note', text: 'You cannot deactivate your own account. The Deactivate button is hidden on your own row.' },
+        ],
+      },
+      {
+        title: 'Removing a team member permanently',
+        role: 'Owner',
+        content: [
+          { type: 'para', text: 'Permanently removes a team member\'s account. Their posts and audit notes are reassigned to the agency Owner so no work is lost.' },
+          { type: 'steps', items: ['Go to Settings → Team', 'Click the trash icon on the team member\'s row', 'An inline confirmation appears — click "Yes, remove" to confirm, or "Cancel" to abort', 'The account is deleted and cannot be recovered'] },
+          { type: 'note', text: 'Owner accounts cannot be removed. To remove yourself, ask another Owner to do it.' },
+        ],
+      },
+      {
         title: 'Setting up webhooks',
         role: 'Owner',
         content: [
