@@ -225,6 +225,7 @@ type InviteForm = z.infer<typeof inviteSchema>;
 
 function TeamTab() {
   const qc = useQueryClient();
+  const { user: currentUser } = useAuthStore();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRole, setEditRole] = useState('');
@@ -368,12 +369,14 @@ function TeamTab() {
                     </div>
                   ) : (
                     <div className="flex items-center justify-end gap-3">
-                      <button
-                        onClick={() => toggleMutation.mutate({ id: u.id, isActive: u.isActive })}
-                        className={`text-xs font-medium cursor-pointer ${u.isActive ? 'text-orange-500 hover:text-orange-700' : 'text-green-600 hover:text-green-800'}`}
-                      >
-                        {u.isActive ? 'Deactivate' : 'Reactivate'}
-                      </button>
+                      {u.id !== currentUser?.id && (
+                        <button
+                          onClick={() => toggleMutation.mutate({ id: u.id, isActive: u.isActive })}
+                          className={`text-xs font-medium cursor-pointer ${u.isActive ? 'text-orange-500 hover:text-orange-700' : 'text-green-600 hover:text-green-800'}`}
+                        >
+                          {u.isActive ? 'Deactivate' : 'Reactivate'}
+                        </button>
+                      )}
                       {u.role !== 'OWNER' && (
                         <button
                           onClick={() => setConfirmDeleteId(u.id)}
