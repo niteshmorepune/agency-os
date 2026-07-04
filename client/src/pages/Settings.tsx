@@ -228,6 +228,7 @@ function TeamTab() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRole, setEditRole] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const { data } = useQuery({
     queryKey: ['users'],
@@ -254,14 +255,14 @@ function TeamTab() {
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => api.put(`/users/${id}`, { isActive: !isActive }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+    onSuccess: (_data, { isActive }) => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success(isActive ? 'Member deactivated' : 'Member reactivated'); },
     onError: () => toast.error('Failed to update status'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/users/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success('Member removed'); },
-    onError: (err: Error) => toast.error(err.message || 'Failed to remove member'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); setConfirmDeleteId(null); toast.success('Member removed'); },
+    onError: (err: Error) => { setConfirmDeleteId(null); toast.error(err.message || 'Failed to remove member'); },
   });
 
   return (
@@ -351,24 +352,39 @@ function TeamTab() {
                   {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : 'Never'}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-3">
-                    <button
-                      onClick={() => toggleMutation.mutate({ id: u.id, isActive: u.isActive })}
-                      className={`text-xs font-medium ${u.isActive ? 'text-orange-500 hover:text-orange-700' : 'text-green-600 hover:text-green-800'}`}
-                    >
-                      {u.isActive ? 'Deactivate' : 'Reactivate'}
-                    </button>
-                    {u.role !== 'OWNER' && (
+                  {confirmDeleteId === u.id ? (
+                    <div className="flex items-center justify-end gap-2 text-xs">
+                      <span className="text-gray-500">Remove permanently?</span>
                       <button
-                        onClick={() => { if (window.confirm(`Remove ${u.name} permanently? This cannot be undone.`)) deleteMutation.mutate(u.id); }}
+                        onClick={() => deleteMutation.mutate(u.id)}
                         disabled={deleteMutation.isPending}
-                        className="text-gray-300 hover:text-red-500 transition-colors"
-                        title="Delete member"
+                        className="px-2 py-1 bg-red-500 text-white rounded cursor-pointer hover:bg-red-600 disabled:opacity-50"
                       >
-                        <Trash2 size={14} />
+                        {deleteMutation.isPending ? 'Removing…' : 'Yes, remove'}
                       </button>
-                    )}
-                  </div>
+                      <button onClick={() => setConfirmDeleteId(null)} className="px-2 py-1 text-gray-500 hover:text-gray-700 cursor-pointer">
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        onClick={() => toggleMutation.mutate({ id: u.id, isActive: u.isActive })}
+                        className={`text-xs font-medium cursor-pointer ${u.isActive ? 'text-orange-500 hover:text-orange-700' : 'text-green-600 hover:text-green-800'}`}
+                      >
+                        {u.isActive ? 'Deactivate' : 'Reactivate'}
+                      </button>
+                      {u.role !== 'OWNER' && (
+                        <button
+                          onClick={() => setConfirmDeleteId(u.id)}
+                          className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                          title="Delete member"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
