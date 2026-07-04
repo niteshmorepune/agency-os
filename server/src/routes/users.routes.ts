@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { Prisma } from '@prisma/client';
+
 import { authenticate, requireOwner } from '../middleware/auth.middleware';
 import { serviceKeyAuth } from '../middleware/service-key.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
@@ -56,20 +56,28 @@ router.put('/:id', asyncHandler(async (req, res) => {
 }));
 
 router.delete('/:id', asyncHandler(async (req, res) => {
-  if (req.params.id === req.user!.userId) { res.status(400).json({ error: 'Cannot delete yourself' }); return; }
-  const target = await prisma.user.findFirst({ where: { id: req.params.id, agencyId: req.user!.agencyId } });
+  const { id } = req.params;
+  const ownerId = req.user!.userId;
+  const agencyId = req.user!.agencyId;
+
+  if (id === ownerId) { res.status(400).json({ error: 'Cannot delete yourself' }); return; }
+  const target = await prisma.user.findFirst({ where: { id, agencyId } });
   if (!target) { res.status(404).json({ error: 'User not found' }); return; }
   if (target.role === 'OWNER') { res.status(400).json({ error: 'Cannot delete an Owner account' }); return; }
-  try {
-    await prisma.user.delete({ where: { id: req.params.id, agencyId: req.user!.agencyId } });
-    res.json({ message: 'User deleted' });
-  } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
-      res.status(409).json({ error: 'This user has authored posts or audit notes. Deactivate them instead — their content must be preserved.' });
-      return;
-    }
-    throw err;
-  }
+
+  // Reassign or remove all FK-referenced records so the user row can be deleted.
+  // Business content (posts, audit notes) is reassigned to the owner rather than dropped.
+  await prisma.$transaction([
+    prisma.clientAssignment.deleteMany({ where: { userId: id } }),
+    prisma.activityLog.deleteMany({ where: { userId: id } }),
+    prisma.aIUsageLog.deleteMany({ where: { userId: id } }),
+    prisma.postDraft.updateMany({ where: { approvedById: id }, data: { approvedById: null } }),
+    prisma.postDraft.updateMany({ where: { createdById: id }, data: { createdById: ownerId } }),
+    prisma.auditNote.updateMany({ where: { authorId: id }, data: { authorId: ownerId } }),
+  ]);
+
+  await prisma.user.delete({ where: { id } });
+  res.json({ message: 'User deleted' });
 }));
 
 export default router;
