@@ -130,6 +130,7 @@ const SECTIONS: Section[] = [
           { type: 'heading', text: 'Status flow' },
           { type: 'steps', items: ['PENDING — just created, not started', 'IN PROGRESS — your team has started', 'COMPLETED — done and marked complete', 'CANCELLED — no longer relevant'] },
           { type: 'note', text: 'Overdue items (past their due date) are highlighted with a red left border so they are easy to spot.' },
+          { type: 'tip', text: 'Some action items may come from Content → Ideas Engine — an Owner or Account Manager "sharing" an AI-researched trending idea with a client creates one of these automatically. See the Ideas Engine article for details.' },
         ],
       },
       {
@@ -223,9 +224,27 @@ const SECTIONS: Section[] = [
         ],
       },
       {
-        title: 'Ideas Engine',
+        title: 'Ideas Engine — AI Generate and Saved Ideas',
         content: [
-          { type: 'steps', items: ['Go to Content → Ideas', 'Select a client and enter a topic or keyword', 'Click Generate — AI produces a set of post ideas', 'Click Save on any idea to keep it; click Use to load it into the composer'] },
+          { type: 'steps', items: ['Go to Content → Ideas', 'AI Generate tab: select a client and enter a topic or keyword, click Generate — AI produces a set of post ideas, click Save on any idea to keep it', 'Saved Ideas tab: browse everything you\'ve saved or that AI has researched, filter by client and by status (All · Saved · Used)', 'Click Use on any saved idea to load it directly into the Content Composer'] },
+        ],
+      },
+      {
+        title: 'Ideas Engine — Find Trending Ideas (web-researched, current trends)',
+        content: [
+          { type: 'para', text: 'Unlike the AI Generate tab (which writes ideas from a topic you type), Find Trending Ideas has Claude search the web for what is genuinely trending right now — current platform algorithm shifts, formats, and challenges relevant to that specific client — and explains why each idea matters with real cited sources.' },
+          { type: 'steps', items: ['Go to Content → Ideas → Saved Ideas tab', 'Select a client from the dropdown (required)', 'Click "🔥 Find Trending Ideas" — this takes a little longer than a normal generation since it searches the web first', '3-5 new ideas appear tagged with an orange "🔥 Trending" badge', 'Each trending idea shows a "Why now" box explaining the real, current reason it matters — expand "View outline" to see the specific sources Claude cited'] },
+          { type: 'note', text: 'This also runs automatically every Monday morning for all active clients — new trending ideas show up in Saved Ideas without anyone needing to click anything, and the client\'s assigned team members get a notification.' },
+          { type: 'tip', text: 'Trending ideas are staff-only until someone reviews and shares them — the client never sees them automatically.' },
+        ],
+      },
+      {
+        title: 'Sharing a trending idea with the client',
+        role: 'Owner · Account Manager',
+        content: [
+          { type: 'para', text: 'Once your team has reviewed a trending idea and thinks it\'s worth the client acting on, share it — this turns it into a client-facing Action Item automatically, using the "Why now" explanation as the description, so the client understands why it matters without needing to see any AI/SEO jargon.' },
+          { type: 'steps', items: ['On a trending idea card, click "Share with client"', 'A matching Action Item is created for that client and the client receives an email notification, same as any other action item', 'The idea card updates to show a "Shared with client" badge instead of the button', 'Track it afterward from the client\'s own Action Items tab, same as any manually-created item'] },
+          { type: 'note', text: 'Each trending idea can only be shared once — the button disappears once it\'s been shared, to avoid emailing the client twice about the same idea.' },
         ],
       },
       {
