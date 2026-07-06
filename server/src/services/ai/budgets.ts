@@ -23,7 +23,7 @@ export const TOKEN_BUDGETS: Record<string, number> = {
   platform_rewrite: 500,
   search_visibility: 1500,
   performance_insights: 1800,
-  trend_ideas: 1500,
+  trend_ideas: 4000, // web search consumes part of this budget on searching before the final JSON — needs headroom beyond a normal text tool
 };
 
 export const CACHE_TTL: Record<string, number> = {

@@ -59,10 +59,14 @@ export async function generateTrendIdeas(client: Client, user: JwtPayload): Prom
   try {
     parsed = JSON.parse(clean);
   } catch {
+    logger.warn({ msg: 'trend_ideas: failed to parse AI response as JSON', clientId: client.id, resultLength: result.length, resultPreview: result.slice(0, 500) });
     return [];
   }
 
-  if (!Array.isArray(parsed)) return [];
+  if (!Array.isArray(parsed)) {
+    logger.warn({ msg: 'trend_ideas: AI response was not a JSON array', clientId: client.id, resultPreview: result.slice(0, 500) });
+    return [];
+  }
 
   return parsed.filter(isTrendIdea).map(idea => ({
     ...idea,
