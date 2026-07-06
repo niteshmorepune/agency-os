@@ -7,7 +7,7 @@ import { JwtPayload } from '@agencyos/shared';
 
 const defaultClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'claude-sonnet-5';
 
 interface ClientContext {
   brandName?: string;
@@ -84,6 +84,7 @@ export async function runAITool(params: {
   clientId?: string;
   clientContext?: ClientContext;
   forceRefresh?: boolean;
+  enableWebSearch?: boolean;
 }): Promise<{ result: string; cached: boolean }> {
   await checkBudget(params.clientId, params.user.agencyId);
 
@@ -105,9 +106,23 @@ export async function runAITool(params: {
     max_tokens: maxTokens,
     system: fullSystem,
     messages: [{ role: 'user', content: params.userPrompt }],
+    ...(params.enableWebSearch
+      ? { tools: [{ type: 'web_search_20250305' as const, name: 'web_search' as const, max_uses: 4 }] }
+      : {}),
   });
 
-  const result = response.content[0].type === 'text' ? response.content[0].text : '';
+  // With web search enabled, content also contains server_tool_use /
+  // web_search_tool_result blocks, and Claude may emit intermediate text
+  // ("Let me search for...") before its final answer — take the LAST text
+  // block, not index 0.
+  let result = '';
+  for (let i = response.content.length - 1; i >= 0; i--) {
+    const block = response.content[i];
+    if (block.type === 'text') {
+      result = block.text;
+      break;
+    }
+  }
   const inputTokens = response.usage.input_tokens;
   const outputTokens = response.usage.output_tokens;
 

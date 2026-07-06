@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@agencyos/shared": "*",
-    "@anthropic-ai/sdk": "^0.30.0",
+    "@anthropic-ai/sdk": "^0.41.0",
     "@prisma/client": "^5.10.2",
     "archiver": "^8.0.0",
     "bcryptjs": "^2.4.3",

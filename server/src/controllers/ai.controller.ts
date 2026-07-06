@@ -6,6 +6,7 @@ import { getPostingSchedule } from '../services/postingTimes';
 import { getBenchmark, calculateEngagementRate, getRating, getPercentile } from '../services/engagementBenchmarks';
 import { getSearchVisibilityAudit } from '../services/ai/searchVisibility';
 import { generatePerformanceInsights } from '../services/ai/performanceInsights';
+import { generateAndSaveTrendIdeas } from '../services/ai/trendIdeas';
 
 const SYSTEM_BASE = `You are an expert digital marketing strategist for a premium agency. You have deep expertise in all major social platforms, SEO, paid ads, email marketing, and content strategy. Always output structured, actionable content. Never use filler phrases. Be specific and platform-aware.`;
 
@@ -382,6 +383,20 @@ export async function performanceInsights(req: Request, res: Response): Promise<
 
   const result = await generatePerformanceInsights({ clientName: client.name, clientId, posts, user: req.user! });
   res.json({ data: result });
+}
+
+// On-demand trend-idea generation for one client — the weekly cron
+// (runWeeklyTrendIdeas in lib/scheduler.ts) covers all active clients on
+// Mondays; this lets a team member trigger a fresh batch immediately.
+export async function trendIdeaGenerator(req: Request, res: Response): Promise<void> {
+  const schema = z.object({ clientId: z.string() });
+  const { clientId } = schema.parse(req.body);
+
+  const client = await prisma.client.findFirst({ where: { id: clientId, agencyId: req.user!.agencyId } });
+  if (!client) { res.status(404).json({ error: 'Client not found' }); return; }
+
+  const ideas = await generateAndSaveTrendIdeas(client, req.user!);
+  res.status(201).json({ data: ideas });
 }
 
 export async function getAIUsage(req: Request, res: Response): Promise<void> {
