@@ -35,6 +35,36 @@ router.post('/:id/assign',  requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), async
 router.delete('/:id/assign', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.removeTeamMember));
 router.get('/:id/dashboard', asyncHandler(ctrl.getClientDashboard));
 
+// Monthly delivery metrics for a date range — used by the NEDS CRM's monthly
+// wins note (server-to-server, X-Service-Key) to fold real marketing-delivery
+// numbers into its own staff-facing summary. Mirrors the same three counts the
+// weekly client digest already computes (see services/ai/digest.ts /
+// lib/scheduler.ts runWeeklyClientDigests), just parameterized by date range
+// instead of a hardcoded week.
+router.get('/:id/monthly-metrics', asyncHandler(async (req, res) => {
+  const schema = z.object({
+    from: z.string().datetime(),
+    to: z.string().datetime(),
+  });
+  const { from, to } = schema.parse(req.query);
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+
+  const client = await prisma.client.findFirst({
+    where: { id: req.params.id, agencyId: req.user!.agencyId },
+    select: { id: true },
+  });
+  if (!client) { res.status(404).json({ error: 'Client not found' }); return; }
+
+  const [postsPublished, auditsCompleted, actionItemsDone] = await Promise.all([
+    prisma.postDraft.count({ where: { clientId: client.id, status: 'PUBLISHED', updatedAt: { gte: fromDate, lte: toDate } } }),
+    prisma.auditProject.count({ where: { clientId: client.id, status: 'COMPLETED', updatedAt: { gte: fromDate, lte: toDate } } }),
+    prisma.clientActionItem.count({ where: { clientId: client.id, status: 'COMPLETED', updatedAt: { gte: fromDate, lte: toDate } } }),
+  ]);
+
+  res.json({ data: { postsPublished, auditsCompleted, actionItemsDone } });
+}));
+
 // ─── Action Items ─────────────────────────────────────────────────────────────
 
 router.get('/:id/action-items', asyncHandler(async (req, res) => {
