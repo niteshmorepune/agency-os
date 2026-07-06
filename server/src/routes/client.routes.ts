@@ -42,9 +42,12 @@ router.get('/:id/dashboard', asyncHandler(ctrl.getClientDashboard));
 // lib/scheduler.ts runWeeklyClientDigests), just parameterized by date range
 // instead of a hardcoded week.
 router.get('/:id/monthly-metrics', asyncHandler(async (req, res) => {
+  // { offset: true } is required — the CRM sends Carbon's toIso8601String()
+  // format ("2026-06-01T00:00:00+00:00"), which Zod's datetime() rejects by
+  // default (it only accepts a bare "Z" suffix unless offset is allowed).
   const schema = z.object({
-    from: z.string().datetime(),
-    to: z.string().datetime(),
+    from: z.string().datetime({ offset: true }),
+    to: z.string().datetime({ offset: true }),
   });
   const { from, to } = schema.parse(req.query);
   const fromDate = new Date(from);
