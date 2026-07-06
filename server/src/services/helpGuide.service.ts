@@ -97,7 +97,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
   <div class="toc-article">Adding clients · Assigning team members · Health scores · Client invite · Onboarding questionnaire · Action Items · In-app messaging · Deleting a client</div>
 
   <div class="toc-section">3. Content Studio</div>
-  <div class="toc-article">Creating posts · Templates · Hashtag sets · Media library · Post approval workflow · Content Calendar · Ideas Engine</div>
+  <div class="toc-article">Creating posts · Templates · Hashtag sets · Media library · Post approval workflow · Content Calendar · Ideas Engine · Trending Ideas · Sharing with clients</div>
 
   <div class="toc-section">4. AI Studio (11 Tools)</div>
   <div class="toc-article">Caption Generator · Hashtag Research · Profile Bio Writer · Audit Report Writer · Content Repurposer · Audience Persona Builder · Competitor Analyzer · Posting Time Optimizer · Engagement Rate Analyzer · AI Search Visibility Audit · AI Usage</div>
@@ -252,6 +252,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
     <li><span class="step-num">4</span><span class="step-text">Click <strong>Start</strong> to move to In Progress, or <strong>Done</strong> to mark as Completed</span></li>
   </ol>
   <div class="note"><span class="note-label">NOTE</span><span class="note-text">Overdue items are highlighted with a red left border. Status flow: PENDING → IN PROGRESS → COMPLETED.</span></div>
+  <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">Some action items come from Content → Ideas Engine — an Owner or Account Manager "sharing" an AI-researched trending idea with a client creates one of these automatically. See the Ideas Engine articles.</span></div>
 </div>
 
 <div class="article">
@@ -341,13 +342,39 @@ const GUIDE_HTML = `<!DOCTYPE html>
 </div>
 
 <div class="article">
-  <div class="article-title">Ideas Engine</div>
+  <div class="article-title">Ideas Engine — AI Generate and Saved Ideas</div>
   <ol class="steps">
     <li><span class="step-num">1</span><span class="step-text">Go to <strong>Content → Ideas</strong></span></li>
-    <li><span class="step-num">2</span><span class="step-text">Select a client and enter a topic or keyword</span></li>
-    <li><span class="step-num">3</span><span class="step-text">Click <strong>Generate</strong> — AI produces a set of post ideas</span></li>
-    <li><span class="step-num">4</span><span class="step-text">Click <strong>Save</strong> on any idea to keep it; click <strong>Use</strong> to load it into the composer</span></li>
+    <li><span class="step-num">2</span><span class="step-text"><strong>AI Generate</strong> tab: select a client and enter a topic or keyword, click <strong>Generate</strong>, then <strong>Save</strong> any idea you want to keep</span></li>
+    <li><span class="step-num">3</span><span class="step-text"><strong>Saved Ideas</strong> tab: browse everything saved or AI-researched, filter by client and by status (All · Saved · Used)</span></li>
+    <li><span class="step-num">4</span><span class="step-text">Click <strong>Use</strong> on any saved idea to load it directly into the Content Composer</span></li>
   </ol>
+</div>
+
+<div class="article">
+  <div class="article-title">Ideas Engine — Find Trending Ideas (web-researched, current trends)</div>
+  <p class="para">Unlike AI Generate (which writes ideas from a topic you type), Find Trending Ideas has Claude search the web for what is genuinely trending right now — current platform algorithm shifts, formats, and challenges relevant to that specific client — and explains why each idea matters with real cited sources.</p>
+  <ol class="steps">
+    <li><span class="step-num">1</span><span class="step-text">Go to <strong>Content → Ideas → Saved Ideas</strong> tab</span></li>
+    <li><span class="step-num">2</span><span class="step-text">Select a client from the dropdown (required)</span></li>
+    <li><span class="step-num">3</span><span class="step-text">Click <strong>"🔥 Find Trending Ideas"</strong> — this takes a little longer since it searches the web first</span></li>
+    <li><span class="step-num">4</span><span class="step-text">3-5 new ideas appear tagged with an orange <strong>"🔥 Trending"</strong> badge</span></li>
+    <li><span class="step-num">5</span><span class="step-text">Each shows a <strong>"Why now"</strong> box explaining the real, current reason it matters — expand <strong>"View outline"</strong> to see the cited sources</span></li>
+  </ol>
+  <div class="note"><span class="note-label">NOTE</span><span class="note-text">This also runs automatically every Monday morning for all active clients — new trending ideas appear without anyone clicking anything, and the client's assigned team members get a notification.</span></div>
+  <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">Trending ideas are staff-only until someone reviews and shares them — the client never sees them automatically.</span></div>
+</div>
+
+<div class="article">
+  <div class="article-title">Sharing a trending idea with the client <span class="role-badge">Owner · Account Manager</span></div>
+  <p class="para">Once your team has reviewed a trending idea and thinks it's worth the client acting on, share it — this turns it into a client-facing Action Item automatically, using the "Why now" explanation as the description, so the client understands why it matters without needing to see any AI/SEO jargon.</p>
+  <ol class="steps">
+    <li><span class="step-num">1</span><span class="step-text">On a trending idea card, click <strong>"Share with client"</strong></span></li>
+    <li><span class="step-num">2</span><span class="step-text">A matching Action Item is created for that client and the client receives an email notification, same as any other action item</span></li>
+    <li><span class="step-num">3</span><span class="step-text">The idea card updates to show a <strong>"Shared with client"</strong> badge instead of the button</span></li>
+    <li><span class="step-num">4</span><span class="step-text">Track it afterward from the client's own Action Items tab, same as any manually-created item</span></li>
+  </ol>
+  <div class="note"><span class="note-label">NOTE</span><span class="note-text">Each trending idea can only be shared once — the button disappears once it's been shared, to avoid emailing the client twice about the same idea.</span></div>
 </div>
 
 <div class="article">
