@@ -53,7 +53,16 @@ export async function generateTrendIdeas(client: Client, user: JwtPayload): Prom
     forceRefresh: true,
   });
 
-  const clean = result.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+  // Strip citation annotations (e.g. <cite index="11-19,11-20">...</cite>)
+  // that Claude's web search tool embeds in response text — keep the cited
+  // text itself, since this copy is reused verbatim as a client-facing
+  // action item description on promotion and must read as plain prose.
+  const clean = result
+    .replace(/```json\s*/gi, '')
+    .replace(/```/g, '')
+    .replace(/<cite[^>]*>/gi, '')
+    .replace(/<\/cite>/gi, '')
+    .trim();
 
   let parsed: unknown;
   try {
