@@ -7,7 +7,7 @@ import { JwtPayload } from '@agencyos/shared';
 
 const defaultClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'claude-sonnet-5';
 
 interface ClientContext {
   brandName?: string;
