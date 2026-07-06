@@ -321,23 +321,32 @@ enum ClientReviewStatus {
 }
 
 model ContentIdea {
-  id         String     @id @default(cuid())
-  clientId   String
-  client     Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  platform   Platform
-  title      String
-  format     String
-  hook       String
-  outline    String
-  status     IdeaStatus @default(SAVED)
-  usedInPost String?
-  createdAt  DateTime   @default(now())
+  id             String             @id @default(cuid())
+  clientId       String
+  client         Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  platform       Platform
+  title          String
+  format         String
+  hook           String
+  outline        String
+  status         IdeaStatus         @default(SAVED)
+  usedInPost     String?
+  source         IdeaSource         @default(MANUAL)
+  trendRationale String?
+  sourceRefs     String[]           @default([])
+  createdAt      DateTime           @default(now())
+  actionItems    ClientActionItem[]
 }
 
 enum IdeaStatus {
   SAVED
   USED
   REJECTED
+}
+
+enum IdeaSource {
+  MANUAL
+  AI_TREND
 }
 
 // ─── Client Goals ─────────────────────────────────────────────────────────────
@@ -610,6 +619,9 @@ model ClientActionItem {
   createdById   String
   completedAt   DateTime?
   completedNote String?
+  source        ActionItemSource @default(TEAM)
+  contentIdeaId String?
+  contentIdea   ContentIdea?     @relation(fields: [contentIdeaId], references: [id], onDelete: SetNull)
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 }
@@ -619,6 +631,11 @@ enum ActionItemStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+}
+
+enum ActionItemSource {
+  TEAM
+  AI_SUGGESTED
 }
 
 // ─── In-App Messaging ─────────────────────────────────────────────────────────

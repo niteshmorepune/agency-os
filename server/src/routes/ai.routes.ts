@@ -33,6 +33,7 @@ router.post('/posting-times', asyncHandler(ctrl.postingTimeOptimizer));
 router.post('/engagement-analyze', asyncHandler(ctrl.engagementAnalyzer));
 router.post('/search-visibility', asyncHandler(ctrl.searchVisibilityAudit));
 router.post('/performance-insights', asyncHandler(ctrl.performanceInsights));
+router.post('/trend-ideas', asyncHandler(ctrl.trendIdeaGenerator));
 router.get('/usage', asyncHandler(ctrl.getAIUsage));
 
 export default router;

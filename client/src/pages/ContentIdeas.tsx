@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowLeft, Lightbulb, Sparkles, RefreshCw, Save, Trash2, PenSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Lightbulb, Sparkles, RefreshCw, Save, Trash2, PenSquare, ChevronDown, ChevronUp, Flame, Send, ExternalLink } from 'lucide-react';
 import { api } from '../api/client';
 import { SafeAIOutput } from '../lib/safeAI';
+import { useAuthStore } from '../store/auth.store';
 
 interface ClientBasic {
   id: string;
@@ -21,6 +22,10 @@ interface ContentIdea {
   hook: string;
   outline: string;
   status: string;
+  source: 'MANUAL' | 'AI_TREND';
+  trendRationale: string | null;
+  sourceRefs: string[];
+  promoted: boolean;
   createdAt: string;
   client: { name: string };
 }
@@ -50,16 +55,25 @@ const IDEA_STATUS_TABS = [
   { key: 'USED', label: 'Used' },
 ];
 
-function IdeaCard({ idea, onDelete, onUse }: {
+function IdeaCard({ idea, canShare, onDelete, onUse, onPromote, promoting }: {
   idea: ContentIdea;
+  canShare: boolean;
   onDelete: (id: string) => void;
   onUse: (idea: ContentIdea) => void;
+  onPromote: (idea: ContentIdea) => void;
+  promoting: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const isTrend = idea.source === 'AI_TREND';
   return (
-    <div className={`card p-4 space-y-2 ${idea.status === 'USED' ? 'opacity-60' : ''}`}>
+    <div className={`card p-4 space-y-2 ${idea.status === 'USED' ? 'opacity-60' : ''} ${isTrend ? 'border-orange-200 bg-orange-50/30' : ''}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
+          {isTrend && (
+            <span className="flex items-center gap-1 text-xs text-white px-2 py-0.5 rounded-full font-medium bg-orange-500">
+              <Flame size={11} /> Trending
+            </span>
+          )}
           <span className={`text-xs text-white px-2 py-0.5 rounded-full font-medium ${PLATFORM_BG[idea.platform] ?? 'bg-gray-500'}`}>
             {PLATFORM_LABELS[idea.platform] ?? idea.platform}
           </span>
@@ -67,8 +81,20 @@ function IdeaCard({ idea, onDelete, onUse }: {
           {idea.status === 'USED' && (
             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Used</span>
           )}
+          {idea.promoted && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Shared with client</span>
+          )}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
+          {isTrend && canShare && !idea.promoted && (
+            <button
+              onClick={() => onPromote(idea)}
+              disabled={promoting}
+              className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors font-medium disabled:opacity-50"
+            >
+              {promoting ? <RefreshCw size={11} className="animate-spin" /> : <Send size={11} />} Share with client
+            </button>
+          )}
           {idea.status !== 'USED' && (
             <button
               onClick={() => onUse(idea)}
@@ -92,6 +118,12 @@ function IdeaCard({ idea, onDelete, onUse }: {
         <p className="text-xs text-gray-500 italic">"{idea.hook}"</p>
       )}
 
+      {isTrend && idea.trendRationale && (
+        <p className="text-xs text-orange-800 bg-orange-100/70 rounded-lg p-2.5 leading-relaxed">
+          <span className="font-semibold">Why now: </span>{idea.trendRationale}
+        </p>
+      )}
+
       {idea.outline && (
         <div>
           <button
@@ -102,7 +134,24 @@ function IdeaCard({ idea, onDelete, onUse }: {
             {expanded ? 'Hide outline' : 'View outline'}
           </button>
           {expanded && (
-            <p className="text-xs text-gray-600 mt-1.5 leading-relaxed bg-gray-50 rounded-lg p-2.5">{idea.outline}</p>
+            <div className="mt-1.5 space-y-2">
+              <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 rounded-lg p-2.5">{idea.outline}</p>
+              {isTrend && idea.sourceRefs.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {idea.sourceRefs.map((ref, i) => (
+                    <a
+                      key={i}
+                      href={ref.startsWith('http') ? ref : `https://${ref}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-primary-600 bg-gray-50 hover:bg-gray-100 rounded-full px-2 py-0.5"
+                    >
+                      <ExternalLink size={10} /> {ref.replace(/^https?:\/\//, '').split('/')[0]}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -197,6 +246,8 @@ function SaveIdeaForm({ clients, onSaved }: { clients: ClientBasic[]; onSaved: (
 export default function ContentIdeas() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { user } = useAuthStore();
+  const canShare = user?.role === 'OWNER' || user?.role === 'ACCOUNT_MANAGER';
   const [tab, setTab] = useState<'generate' | 'saved'>('generate');
   const [statusFilter, setStatusFilter] = useState('SAVED');
   const [clientFilter, setClientFilter] = useState('');
@@ -239,6 +290,21 @@ export default function ContentIdeas() {
       api.patch(`/ideas/${id}`, { status: 'USED', usedInPost: postId }),
   });
   void markUsedMutation;
+
+  const promoteMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/ideas/${id}/promote`, {}),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['ideas'] }); toast.success('Shared with client'); },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to share with client'),
+  });
+
+  const findTrendsMutation = useMutation({
+    mutationFn: (clientId: string) => api.post<{ data: unknown[] }>('/ai/trend-ideas', { clientId }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['ideas'] });
+      toast.success(res.data.length > 0 ? `Found ${res.data.length} trending idea(s)` : 'No strong trends found for this client right now');
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to research trends'),
+  });
 
   const generate = async () => {
     if (!genNiche) return;
@@ -397,6 +463,15 @@ export default function ContentIdeas() {
                 </button>
               ))}
             </div>
+            <button
+              onClick={() => clientFilter && findTrendsMutation.mutate(clientFilter)}
+              disabled={!clientFilter || findTrendsMutation.isPending}
+              title={clientFilter ? 'Research current trends for this client' : 'Select a client above first'}
+              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl bg-orange-50 text-orange-700 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              {findTrendsMutation.isPending ? <RefreshCw size={14} className="animate-spin" /> : <Flame size={14} />}
+              Find Trending Ideas
+            </button>
           </div>
 
           {ideasLoading ? (
@@ -415,8 +490,11 @@ export default function ContentIdeas() {
                 <IdeaCard
                   key={idea.id}
                   idea={idea}
+                  canShare={canShare}
                   onDelete={id => deleteMutation.mutate(id)}
                   onUse={useIdea}
+                  onPromote={i => promoteMutation.mutate(i.id)}
+                  promoting={promoteMutation.isPending && promoteMutation.variables === idea.id}
                 />
               ))}
             </div>

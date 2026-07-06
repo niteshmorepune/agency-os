@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, requireRole } from '../middleware/auth.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
+import { sendActionItemEmail } from '../services/email.service';
+import { Role } from '@agencyos/shared';
 import DOMPurify from 'isomorphic-dompurify';
 
 const router = Router();
@@ -31,9 +33,9 @@ router.get('/', asyncHandler(async (req, res) => {
     where,
     orderBy: { createdAt: 'desc' },
     take: 100,
-    include: { client: { select: { name: true } } },
+    include: { client: { select: { name: true } }, actionItems: { select: { id: true } } },
   });
-  res.json({ data: ideas });
+  res.json({ data: ideas.map(({ actionItems, ...idea }) => ({ ...idea, promoted: actionItems.length > 0 })) });
 }));
 
 router.post('/', asyncHandler(async (req, res) => {
@@ -74,6 +76,45 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   if (!idea) { res.status(404).json({ error: 'Idea not found' }); return; }
   await prisma.contentIdea.delete({ where: { id: req.params.id } });
   res.json({ message: 'Deleted' });
+}));
+
+// Promote an approved idea into a client-facing action item. The idea's own
+// status is left as SAVED — usedInPost is reserved for linking to an actual
+// published post, not this promotion step.
+router.post('/:id/promote', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(async (req, res) => {
+  const idea = await prisma.contentIdea.findFirst({
+    where: { id: req.params.id, client: { agencyId: req.user!.agencyId } },
+    include: { client: { select: { id: true, name: true, contactEmail: true, contactName: true } } },
+  });
+  if (!idea) { res.status(404).json({ error: 'Idea not found' }); return; }
+
+  const alreadyPromoted = await prisma.clientActionItem.findFirst({ where: { contentIdeaId: idea.id } });
+  if (alreadyPromoted) { res.status(409).json({ error: 'This idea has already been shared with the client' }); return; }
+
+  const item = await prisma.clientActionItem.create({
+    data: {
+      agencyId: req.user!.agencyId,
+      clientId: idea.clientId,
+      title: idea.title,
+      description: idea.trendRationale ?? idea.outline,
+      source: 'AI_SUGGESTED',
+      contentIdeaId: idea.id,
+      createdById: req.user!.userId,
+    },
+  });
+
+  if (idea.client.contactEmail) {
+    sendActionItemEmail({
+      agencyId: req.user!.agencyId,
+      clientEmail: idea.client.contactEmail,
+      clientName: idea.client.contactName ?? idea.client.name,
+      title: idea.title,
+      description: item.description ?? undefined,
+      dueDate: undefined,
+    }).catch(() => null);
+  }
+
+  res.status(201).json({ data: item });
 }));
 
 export default router;

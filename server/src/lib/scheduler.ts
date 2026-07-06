@@ -15,6 +15,7 @@ import {
 } from '../services/publisher.service';
 import { sendClientDigestEmail } from '../services/email.service';
 import { runAITool } from '../services/ai/client';
+import { generateAndSaveTrendIdeas } from '../services/ai/trendIdeas';
 
 export function startScheduler(): void {
   // Auto-publish scheduled posts — every 5 minutes
@@ -40,7 +41,13 @@ export function startScheduler(): void {
     runWeeklyClientDigests().catch(err => logger.error({ msg: 'Weekly client digests failed', err }));
   });
 
-  logger.info({ msg: 'Scheduler started — auto-publish every 5min, daily 03:30 UTC, weekly Sunday 14:30 UTC, monthly 02:30 UTC on 1st' });
+  // Weekly AI trend ideas — every Monday at 9:00 AM IST = 03:30 UTC
+  cron.schedule('30 3 * * 1', () => {
+    logger.info({ msg: 'Scheduler: running weekly trend ideas' });
+    runWeeklyTrendIdeas().catch(err => logger.error({ msg: 'Weekly trend ideas failed', err }));
+  });
+
+  logger.info({ msg: 'Scheduler started — auto-publish every 5min, daily 03:30 UTC, weekly Sunday 14:30 UTC, weekly trend ideas Monday 03:30 UTC, monthly 02:30 UTC on 1st' });
 }
 
 // ─── Auto-publish ─────────────────────────────────────────────────────────────
@@ -393,6 +400,49 @@ async function runWeeklyClientDigests(): Promise<void> {
   }
 
   logger.info({ msg: `Weekly client digests complete`, sent, total: clients.length });
+}
+
+// ─── Weekly AI trend ideas ─────────────────────────────────────────────────────
+
+async function runWeeklyTrendIdeas(): Promise<void> {
+  const clients = await prisma.client.findMany({ where: { status: 'ACTIVE' } });
+
+  if (clients.length === 0) return;
+
+  // Build owner context per agency (needed as the `user` for the AI tool call)
+  const agencyOwners = new Map<string, { userId: string; agencyId: string; role: string; name: string; email: string }>();
+  for (const client of clients) {
+    if (!agencyOwners.has(client.agencyId)) {
+      const owner = await prisma.user.findFirst({
+        where: { agencyId: client.agencyId, role: 'OWNER', isActive: true },
+        select: { id: true, name: true, email: true },
+      });
+      if (owner) {
+        agencyOwners.set(client.agencyId, {
+          userId: owner.id,
+          agencyId: client.agencyId,
+          role: 'OWNER',
+          name: owner.name,
+          email: owner.email,
+        });
+      }
+    }
+  }
+
+  let created = 0;
+  for (const client of clients) {
+    const ownerCtx = agencyOwners.get(client.agencyId);
+    if (!ownerCtx) continue;
+
+    try {
+      const ideas = await generateAndSaveTrendIdeas(client, ownerCtx as never);
+      created += ideas.length;
+    } catch (err) {
+      logger.error({ msg: 'Weekly trend ideas failed for client', clientId: client.id, err });
+    }
+  }
+
+  logger.info({ msg: 'Weekly trend ideas complete', created, clients: clients.length });
 }
 
 // ─── Monthly report auto-send ─────────────────────────────────────────────────
