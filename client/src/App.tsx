@@ -36,6 +36,7 @@ import PostingTimeOptimizer from './pages/PostingTimeOptimizer';
 import EngagementAnalyzer from './pages/EngagementAnalyzer';
 import SearchVisibility from './pages/SearchVisibility';
 import OnboardingForm from './pages/OnboardingForm';
+import AcceptInvite from './pages/AcceptInvite';
 import WorkloadView from './pages/WorkloadView';
 
 const Spinner = () => (
@@ -86,6 +87,7 @@ export default function App() {
       <Toaster position="top-right" richColors closeButton />
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/accept-invite/:token" element={<AcceptInvite />} />
         <Route path="/" element={<RootRedirect />} />
         <Route path="/portal" element={<ProtectedRoute><ClientPortal /></ProtectedRoute>} />
         <Route path="/dashboard" element={<AgencyOnlyRoute><Dashboard /></AgencyOnlyRoute>} />

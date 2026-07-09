@@ -83,3 +83,31 @@ export async function hashPassword(password: string): Promise<string> {
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
+
+export async function acceptInvite(token: string, password: string): Promise<{ accessToken: string; refreshToken: string; user: JwtPayload }> {
+  const record = await prisma.passwordSetupToken.findUnique({ where: { token }, include: { user: true } });
+  if (!record) throw Object.assign(new Error('Invalid invite link'), { statusCode: 404 });
+  if (record.usedAt) throw Object.assign(new Error('This invite link has already been used'), { statusCode: 409 });
+  if (record.expiresAt < new Date()) throw Object.assign(new Error('This invite link has expired. Ask your Owner to resend it.'), { statusCode: 410 });
+
+  const passwordHash = await hashPassword(password);
+  const user = await prisma.$transaction(async (tx) => {
+    const updated = await tx.user.update({
+      where: { id: record.userId },
+      data: { passwordHash, lastLoginAt: new Date() },
+    });
+    await tx.passwordSetupToken.update({ where: { id: record.id }, data: { usedAt: new Date() } });
+    return updated;
+  });
+
+  const payload: JwtPayload = { userId: user.id, agencyId: user.agencyId, role: user.role as Role, email: user.email };
+  const accessToken = signAccessToken(payload);
+  const refreshToken = signRefreshToken({ userId: user.id });
+
+  await prisma.refreshToken.create({
+    data: { userId: user.id, tokenHash: hashToken(refreshToken), expiresAt: getRefreshExpiry() },
+  });
+
+  logger.info({ msg: 'Invite accepted, user activated', userId: user.id });
+  return { accessToken, refreshToken, user: payload };
+}

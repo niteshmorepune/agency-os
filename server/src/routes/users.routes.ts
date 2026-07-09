@@ -1,11 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import crypto from 'crypto';
 
-import { authenticate, requireOwner } from '../middleware/auth.middleware';
+import { authenticate, requireOwner, requireRole } from '../middleware/auth.middleware';
 import { serviceKeyAuth } from '../middleware/service-key.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
 import { hashPassword } from '../services/auth.service';
+import { sendTeamInviteEmail } from '../services/email.service';
+import { Role } from '@agencyos/shared';
 
 const router = Router();
 
@@ -20,9 +23,12 @@ const serviceKeyOrAuthenticate = (req: Request, res: Response, next: NextFunctio
   }
 };
 
-router.use(serviceKeyOrAuthenticate, requireOwner);
+router.use(serviceKeyOrAuthenticate);
 
-router.get('/', asyncHandler(async (req, res) => {
+// Listing users is needed by Account Managers too (e.g. the "assign team
+// member" picker on Client Detail, which POST /clients/:id/assign already
+// permits for ACCOUNT_MANAGER) — only mutating routes below require OWNER.
+router.get('/', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(async (req, res) => {
   const users = await prisma.user.findMany({
     where: { agencyId: req.user!.agencyId },
     select: { id: true, email: true, name: true, role: true, avatarUrl: true, isActive: true, lastLoginAt: true, createdAt: true },
@@ -31,18 +37,73 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json({ data: users });
 }));
 
-router.post('/', asyncHandler(async (req, res) => {
-  const schema = z.object({ email: z.string().email(), name: z.string().min(1), role: z.enum(['ACCOUNT_MANAGER', 'CONTENT_CREATOR', 'SEO_ANALYST', 'CLIENT']), password: z.string().min(8) });
-  const { email, name, role, password } = schema.parse(req.body);
-  const passwordHash = await hashPassword(password);
-  const user = await prisma.user.create({
-    data: { email, name, role, passwordHash, agencyId: req.user!.agencyId },
-    select: { id: true, email: true, name: true, role: true, createdAt: true },
+// Service-key callers (CRM) still create the user with an explicit password
+// directly — that integration is unaffected by the invite-link flow below.
+const serviceKeyCreateSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1),
+  role: z.enum(['ACCOUNT_MANAGER', 'CONTENT_CREATOR', 'SEO_ANALYST', 'CLIENT']),
+  password: z.string().min(8),
+});
+
+// Interactive Owner invites (Settings -> Team): no password is collected here.
+// The user is created with an unusable random passwordHash and a one-time
+// PasswordSetupToken is emailed via sendTeamInviteEmail; they set their own
+// password at /accept-invite/:token (see invite.routes.ts). Inviting a CLIENT
+// requires clientId so the portal ClientAssignment is created in the same
+// request — without it the client has no client to view (see [[backlog]]).
+const inviteSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1),
+  role: z.enum(['ACCOUNT_MANAGER', 'CONTENT_CREATOR', 'SEO_ANALYST', 'CLIENT']),
+  clientId: z.string().optional(),
+});
+
+router.post('/', requireOwner, asyncHandler(async (req, res) => {
+  if (req.headers['x-service-key']) {
+    const { email, name, role, password } = serviceKeyCreateSchema.parse(req.body);
+    const passwordHash = await hashPassword(password);
+    const user = await prisma.user.create({
+      data: { email, name, role, passwordHash, agencyId: req.user!.agencyId },
+      select: { id: true, email: true, name: true, role: true, createdAt: true },
+    });
+    res.status(201).json({ data: user });
+    return;
+  }
+
+  const { email, name, role, clientId } = inviteSchema.parse(req.body);
+
+  if (role === 'CLIENT' && !clientId) {
+    res.status(400).json({ error: 'Select a client for a Client-role invite' });
+    return;
+  }
+  if (clientId) {
+    const client = await prisma.client.findFirst({ where: { id: clientId, agencyId: req.user!.agencyId }, select: { id: true } });
+    if (!client) { res.status(404).json({ error: 'Client not found' }); return; }
+  }
+
+  const placeholderHash = await hashPassword(crypto.randomBytes(32).toString('hex'));
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  const user = await prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: { email, name, role, passwordHash: placeholderHash, agencyId: req.user!.agencyId },
+      select: { id: true, email: true, name: true, role: true, createdAt: true },
+    });
+    await tx.passwordSetupToken.create({ data: { userId: created.id, token, expiresAt } });
+    if (clientId) {
+      await tx.clientAssignment.create({ data: { clientId, userId: created.id } });
+    }
+    return created;
   });
+
+  await sendTeamInviteEmail({ agencyId: req.user!.agencyId, name, email, role, token }).catch(() => null);
+
   res.status(201).json({ data: user });
 }));
 
-router.put('/:id', asyncHandler(async (req, res) => {
+router.put('/:id', requireOwner, asyncHandler(async (req, res) => {
   if (req.params.id === req.user!.userId) { res.status(400).json({ error: 'Cannot change your own role' }); return; }
   const schema = z.object({ name: z.string().min(1).optional(), role: z.enum(['OWNER', 'ACCOUNT_MANAGER', 'CONTENT_CREATOR', 'SEO_ANALYST', 'CLIENT']).optional(), isActive: z.boolean().optional() });
   const data = schema.parse(req.body);
@@ -55,7 +116,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
   res.json({ data: user });
 }));
 
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', requireOwner, asyncHandler(async (req, res) => {
   const { id } = req.params;
   const ownerId = req.user!.userId;
   const agencyId = req.user!.agencyId;
