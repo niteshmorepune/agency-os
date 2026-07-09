@@ -34,13 +34,21 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
   return data;
 }
 
+// Concurrent requests that all see a 401 at once (e.g. several dashboard
+// widgets loading in parallel right as the access token expires) must share
+// a single refresh call — refresh tokens are single-use server-side, so
+// each extra concurrent call would otherwise lose the race and force an
+// unwanted logout even though the first call already rotated the cookies.
+let refreshPromise: Promise<boolean> | null = null;
+
 async function tryRefresh(): Promise<boolean> {
-  try {
-    const res = await fetch(`${BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' });
-    return res.ok;
-  } catch {
-    return false;
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
+      .then(res => res.ok)
+      .catch(() => false)
+      .finally(() => { refreshPromise = null; });
   }
+  return refreshPromise;
 }
 
 export const api = {
