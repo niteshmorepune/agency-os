@@ -57,7 +57,18 @@ export async function refresh(token: string): Promise<{ accessToken: string; ref
     throw Object.assign(new Error('Invalid refresh token'), { statusCode: 401 });
   }
 
-  await prisma.refreshToken.delete({ where: { id: stored.id } });
+  // Refresh tokens are single-use: two requests bearing the same token can
+  // both pass the findUnique check above before either deletes it (e.g. two
+  // browser tabs refreshing at once). The loser's delete must fail as a
+  // clean "invalid token" 401, not bubble up as an unhandled 500.
+  try {
+    await prisma.refreshToken.delete({ where: { id: stored.id } });
+  } catch (err) {
+    if ((err as { code?: string }).code === 'P2025') {
+      throw Object.assign(new Error('Invalid refresh token'), { statusCode: 401 });
+    }
+    throw err;
+  }
 
   const user = stored.user;
   const payload: JwtPayload = { userId: user.id, agencyId: user.agencyId, role: user.role as Role, email: user.email };
