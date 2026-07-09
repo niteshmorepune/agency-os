@@ -215,13 +215,17 @@ function ApiKeysTab({ agency }: { agency: Agency }) {
 }
 
 // ── Team Tab ───────────────────────────────────────────────────────────────────
+// No password field — the invitee sets their own via the emailed one-time
+// link (see server/src/routes/invite.routes.ts). clientId is required when
+// role is Client so their portal ClientAssignment is created immediately.
 const inviteSchema = z.object({
   name: z.string().min(1, 'Required'),
   email: z.string().email('Valid email required'),
   role: z.enum(['ACCOUNT_MANAGER', 'CONTENT_CREATOR', 'SEO_ANALYST', 'CLIENT']),
-  password: z.string().min(8, 'Min 8 characters'),
-});
+  clientId: z.string().optional(),
+}).refine(d => d.role !== 'CLIENT' || !!d.clientId, { message: 'Select a client', path: ['clientId'] });
 type InviteForm = z.infer<typeof inviteSchema>;
+interface InviteClientOption { id: string; name: string; }
 
 function TeamTab() {
   const qc = useQueryClient();
@@ -237,15 +241,23 @@ function TeamTab() {
   });
   const users = data?.data ?? [];
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<InviteForm>({
+  const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm<InviteForm>({
     resolver: zodResolver(inviteSchema),
     defaultValues: { role: 'ACCOUNT_MANAGER' },
   });
+  const inviteRole = watch('role');
+
+  const { data: clientsData } = useQuery({
+    queryKey: ['clients', 'invite-picker'],
+    queryFn: () => api.get<{ data: InviteClientOption[] }>('/clients'),
+    enabled: showForm && inviteRole === 'CLIENT',
+  });
+  const clientOptions = clientsData?.data ?? [];
 
   const inviteMutation = useMutation({
     mutationFn: (d: InviteForm) => api.post('/users', d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); reset(); setShowForm(false); toast.success('Team member invited'); },
-    onError: () => toast.error('Failed to invite team member'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); reset(); setShowForm(false); toast.success('Invite sent — they\'ll get an email to set their password'); },
+    onError: () => toast.error('Failed to send invite'),
   });
 
   const updateMutation = useMutation({
@@ -298,14 +310,20 @@ function TeamTab() {
                 <option value="CLIENT">Client</option>
               </select>
             </div>
-            <div>
-              <label className="label">Temporary Password</label>
-              <input {...register('password')} type="password" className="input" />
-              {errors.password && <p className="text-red-600 text-xs mt-1">{errors.password.message}</p>}
-            </div>
+            {inviteRole === 'CLIENT' && (
+              <div>
+                <label className="label">Client</label>
+                <select {...register('clientId')} className="input">
+                  <option value="">— choose —</option>
+                  {clientOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                {errors.clientId && <p className="text-red-600 text-xs mt-1">{errors.clientId.message}</p>}
+              </div>
+            )}
           </div>
+          <p className="text-gray-400 text-xs">They'll get an email with a one-time link to set their own password.</p>
           {inviteMutation.isError && <p className="text-red-600 text-sm">{(inviteMutation.error as Error).message}</p>}
-          <button type="submit" disabled={isSubmitting} className="btn-primary">{isSubmitting ? 'Inviting...' : 'Send Invite'}</button>
+          <button type="submit" disabled={isSubmitting} className="btn-primary">{isSubmitting ? 'Sending...' : 'Send Invite'}</button>
         </form>
       )}
 

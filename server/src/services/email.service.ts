@@ -207,6 +207,55 @@ export async function sendContentReviewEmail(params: {
   });
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  OWNER: 'Owner',
+  ACCOUNT_MANAGER: 'Account Manager',
+  CONTENT_CREATOR: 'Content Creator',
+  SEO_ANALYST: 'SEO Analyst',
+  CLIENT: 'Client',
+};
+
+export async function sendTeamInviteEmail(params: {
+  agencyId: string;
+  name: string;
+  email: string;
+  role: string;
+  token: string;
+}) {
+  let transport: ReturnType<typeof nodemailer.createTransport>;
+  let fromEmail: string;
+  let agencyName: string;
+  try {
+    ({ transport, fromEmail, agencyName } = await getTransport(params.agencyId));
+  } catch {
+    return;
+  }
+  const baseUrl = (process.env.FRONTEND_URL ?? 'https://nedsdrishti.in').replace(/\/$/, '');
+  const url = `${baseUrl}/accept-invite/${params.token}`;
+  const roleLabel = ROLE_LABELS[params.role] ?? params.role;
+  const isClient = params.role === 'CLIENT';
+  await transport.sendMail({
+    from: `"${agencyName}" <${fromEmail}>`,
+    to: params.email,
+    subject: `You're invited to ${agencyName} on Agency OS`,
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#111827">
+        <div style="background:#1a472a;padding:28px 32px;border-radius:12px 12px 0 0">
+          <h1 style="color:#fff;margin:0;font-size:20px">${agencyName}</h1>
+        </div>
+        <div style="background:#fff;padding:28px 32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px">
+          <p>Hi ${params.name},</p>
+          <p>${agencyName} has invited you to ${isClient ? 'their client portal on Agency OS' : `join their team on Agency OS as a ${roleLabel}`}.</p>
+          <p style="text-align:center;margin:28px 0">
+            <a href="${url}" style="background:#1a472a;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600">Set Your Password →</a>
+          </p>
+          <p style="color:#6b7280;font-size:13px">This link expires in 7 days and can only be used once. If you weren't expecting this invite, you can ignore this email.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendOnboardingEmail(params: {
   agencyId: string;
   clientName: string;

@@ -64,6 +64,21 @@ model User {
   refreshTokens    RefreshToken[]
   approvedPosts    PostDraft[]        @relation("PostApprovals")
   notifications    Notification[]
+  passwordSetupToken PasswordSetupToken?
+}
+
+// One-time "set your password" link issued when an Owner invites a new
+// team member or client via Settings -> Team. Invited users are created
+// with an unusable random passwordHash and can't log in until they
+// consume this token (see routes/invite.routes.ts).
+model PasswordSetupToken {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }
 
 enum Role {
