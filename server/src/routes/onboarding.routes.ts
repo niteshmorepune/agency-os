@@ -11,7 +11,6 @@ router.get('/:token', asyncHandler(async (req, res) => {
     include: {
       client: {
         include: { agency: { select: { name: true, logoUrl: true, primaryColor: true, accentColor: true } } },
-        select: { id: true, name: true, onboardingComplete: true, agency: true },
       },
     },
   });
