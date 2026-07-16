@@ -55,13 +55,16 @@ const IDEA_STATUS_TABS = [
   { key: 'USED', label: 'Used' },
 ];
 
-function IdeaCard({ idea, canShare, onDelete, onUse, onPromote, promoting }: {
+function IdeaCard({ idea, canShare, onDelete, onUse, onPromote, promoting, onSendToSmdost, sendingToSmdost, sentToSmdost }: {
   idea: ContentIdea;
   canShare: boolean;
   onDelete: (id: string) => void;
   onUse: (idea: ContentIdea) => void;
   onPromote: (idea: ContentIdea) => void;
   promoting: boolean;
+  onSendToSmdost: (idea: ContentIdea) => void;
+  sendingToSmdost: boolean;
+  sentToSmdost: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const isTrend = idea.source === 'AI_TREND';
@@ -84,6 +87,9 @@ function IdeaCard({ idea, canShare, onDelete, onUse, onPromote, promoting }: {
           {idea.promoted && (
             <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Shared with client</span>
           )}
+          {sentToSmdost && (
+            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Sent to SMDost</span>
+          )}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
           {isTrend && canShare && !idea.promoted && (
@@ -93,6 +99,15 @@ function IdeaCard({ idea, canShare, onDelete, onUse, onPromote, promoting }: {
               className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors font-medium disabled:opacity-50"
             >
               {promoting ? <RefreshCw size={11} className="animate-spin" /> : <Send size={11} />} Share with client
+            </button>
+          )}
+          {isTrend && canShare && !sentToSmdost && (
+            <button
+              onClick={() => onSendToSmdost(idea)}
+              disabled={sendingToSmdost}
+              className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors font-medium disabled:opacity-50"
+            >
+              {sendingToSmdost ? <RefreshCw size={11} className="animate-spin" /> : <Send size={11} />} Send to SMDost
             </button>
           )}
           {idea.status !== 'USED' && (
@@ -297,6 +312,21 @@ export default function ContentIdeas() {
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to share with client'),
   });
 
+  // Not persisted server-side -- the CRM is the source of truth for whether a
+  // brief already exists (idempotent per idea, see crmBridge.service.ts on
+  // the Drishti server). This just gives immediate UI feedback within the
+  // session; a page reload re-shows the button, and a repeat click is still
+  // safe (the CRM responds "already sent" instead of duplicating the brief).
+  const [sentToSmdostIds, setSentToSmdostIds] = useState<Set<string>>(new Set());
+  const sendToSmdostMutation = useMutation({
+    mutationFn: (id: string) => api.post<{ data: { briefId: string } }>(`/ideas/${id}/send-to-smdost`, {}),
+    onSuccess: (_res, id) => {
+      setSentToSmdostIds(prev => new Set(prev).add(id));
+      toast.success('Sent to SMDost as a content brief');
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to send to SMDost'),
+  });
+
   const findTrendsMutation = useMutation({
     mutationFn: (clientId: string) => api.post<{ data: unknown[] }>('/ai/trend-ideas', { clientId }),
     onSuccess: (res) => {
@@ -495,6 +525,9 @@ export default function ContentIdeas() {
                   onUse={useIdea}
                   onPromote={i => promoteMutation.mutate(i.id)}
                   promoting={promoteMutation.isPending && promoteMutation.variables === idea.id}
+                  onSendToSmdost={i => sendToSmdostMutation.mutate(i.id)}
+                  sendingToSmdost={sendToSmdostMutation.isPending && sendToSmdostMutation.variables === idea.id}
+                  sentToSmdost={sentToSmdostIds.has(idea.id)}
                 />
               ))}
             </div>
