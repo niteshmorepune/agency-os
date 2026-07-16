@@ -4,6 +4,7 @@ import { authenticate, requireRole } from '../middleware/auth.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
 import { sendActionItemEmail } from '../services/email.service';
+import { sendTrendIdeaToSmdost } from '../services/crmBridge.service';
 import { Role } from '@agencyos/shared';
 import DOMPurify from 'isomorphic-dompurify';
 
@@ -115,6 +116,46 @@ router.post('/:id/promote', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), async
   }
 
   res.status(201).json({ data: item });
+}));
+
+// Sends a trending idea to the CRM, which creates an SMDost content brief
+// for it. The CRM brokers this since it's the only place that already knows
+// both this client's Drishti id and its SMDost id. Idempotent per idea --
+// a repeat click after the CRM already created a brief comes back as
+// 'already_sent', not a duplicate.
+router.post('/:id/send-to-smdost', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(async (req, res) => {
+  const idea = await prisma.contentIdea.findFirst({
+    where: { id: req.params.id, client: { agencyId: req.user!.agencyId } },
+  });
+  if (!idea) { res.status(404).json({ error: 'Idea not found' }); return; }
+
+  const result = await sendTrendIdeaToSmdost({
+    contentIdeaId: idea.id,
+    drishtiClientId: idea.clientId,
+    title: idea.title,
+    platform: idea.platform,
+    hook: idea.hook,
+    outline: idea.outline,
+    trendRationale: idea.trendRationale,
+    sourceRefs: idea.sourceRefs,
+  });
+
+  switch (result.outcome) {
+    case 'ok':
+      res.json({ data: { briefId: result.briefId } });
+      return;
+    case 'already_sent':
+      res.status(409).json({ error: 'This idea was already sent to SMDost.' });
+      return;
+    case 'not_linked_to_smdost':
+      res.status(422).json({ error: 'This client is not linked to an SMDost account yet.' });
+      return;
+    case 'no_customer_match':
+      res.status(422).json({ error: 'This client could not be matched in the CRM.' });
+      return;
+    default:
+      res.status(502).json({ error: 'Could not reach the CRM to create the SMDost brief. Try again shortly.' });
+  }
 }));
 
 export default router;
