@@ -248,6 +248,16 @@ const SECTIONS: Section[] = [
         ],
       },
       {
+        title: 'Sending a trending idea to SMDost',
+        role: 'Owner · Account Manager',
+        content: [
+          { type: 'para', text: 'If the client also has a linked SMDost account, you can turn a trending idea straight into a content brief there — no need to retype the idea into SMDost by hand.' },
+          { type: 'steps', items: ['On a trending idea card, click "Send to SMDost"', 'The idea\'s title, hook, outline, and "Why now" rationale are sent over to SMDost as a new content brief for that client, ready for the team to generate content from', 'The card updates to show a "Sent to SMDost" badge for the rest of your session'] },
+          { type: 'note', text: 'This is separate from "Share with client" — sending to SMDost is an internal handoff to the content-production team, it does not notify or create anything visible to the client by itself.' },
+          { type: 'tip', text: 'If the client isn\'t linked to an SMDost account yet, you\'ll see an error instead of a silent failure — check with an Admin that the client\'s SMDost link was set up during onboarding.' },
+        ],
+      },
+      {
         title: 'Media Library',
         content: [
           { type: 'steps', items: ['Go to Content → Media', 'Select a client from the dropdown', 'Click Upload Files to add images or videos (max 20 MB each)', 'Images are auto-converted to WebP and resized to max 1920px', 'Click the red trash icon on any asset to delete it'] },
