@@ -97,7 +97,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
   <div class="toc-article">Adding clients · Assigning team members · Health scores · Client invite · Onboarding questionnaire · Action Items · In-app messaging · Deleting a client</div>
 
   <div class="toc-section">3. Content Studio</div>
-  <div class="toc-article">Creating posts · Templates · Hashtag sets · Media library · Post approval workflow · Content Calendar · Ideas Engine · Trending Ideas · Sharing with clients</div>
+  <div class="toc-article">Creating posts · Templates · Hashtag sets · Media library · Post approval workflow · Content Calendar · Ideas Engine · Trending Ideas · Sharing with clients · Sending to SMDost</div>
 
   <div class="toc-section">4. AI Studio (11 Tools)</div>
   <div class="toc-article">Caption Generator · Hashtag Research · Profile Bio Writer · Audit Report Writer · Content Repurposer · Audience Persona Builder · Competitor Analyzer · Posting Time Optimizer · Engagement Rate Analyzer · AI Search Visibility Audit · AI Usage</div>
@@ -375,6 +375,18 @@ const GUIDE_HTML = `<!DOCTYPE html>
     <li><span class="step-num">4</span><span class="step-text">Track it afterward from the client's own Action Items tab, same as any manually-created item</span></li>
   </ol>
   <div class="note"><span class="note-label">NOTE</span><span class="note-text">Each trending idea can only be shared once — the button disappears once it's been shared, to avoid emailing the client twice about the same idea.</span></div>
+</div>
+
+<div class="article">
+  <div class="article-title">Sending a trending idea to SMDost <span class="role-badge">Owner · Account Manager</span></div>
+  <p class="para">If the client also has a linked SMDost account, you can turn a trending idea straight into a content brief there — no need to retype the idea into SMDost by hand.</p>
+  <ol class="steps">
+    <li><span class="step-num">1</span><span class="step-text">On a trending idea card, click <strong>"Send to SMDost"</strong></span></li>
+    <li><span class="step-num">2</span><span class="step-text">The idea's title, hook, outline, and "Why now" rationale are sent to SMDost as a new content brief for that client, ready for the team to generate content from</span></li>
+    <li><span class="step-num">3</span><span class="step-text">The card updates to show a <strong>"Sent to SMDost"</strong> badge for the rest of your session</span></li>
+  </ol>
+  <div class="note"><span class="note-label">NOTE</span><span class="note-text">This is separate from "Share with client" — sending to SMDost is an internal handoff to the content-production team, it does not notify or create anything visible to the client by itself.</span></div>
+  <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">If the client isn't linked to an SMDost account yet, you'll see an error instead of a silent failure — check with an Admin that the client's SMDost link was set up during onboarding.</span></div>
 </div>
 
 <div class="article">
