@@ -41,13 +41,14 @@ export function startScheduler(): void {
     runWeeklyClientDigests().catch(err => logger.error({ msg: 'Weekly client digests failed', err }));
   });
 
-  // Weekly AI trend ideas — every Monday at 9:00 AM IST = 03:30 UTC
-  cron.schedule('30 3 * * 1', () => {
-    logger.info({ msg: 'Scheduler: running weekly trend ideas' });
-    runWeeklyTrendIdeas().catch(err => logger.error({ msg: 'Weekly trend ideas failed', err }));
-  });
+  // AI trend ideas run on-demand only (per-client "Find Trending Ideas"
+  // button, POST /ai/trend-ideas) — the automatic weekly-for-every-client
+  // cron was removed 2026-07-20 to stop spending web-search API cost on
+  // clients nobody's actively planning content for that week. See
+  // runWeeklyTrendIdeas() below if a future manual/admin "run for all
+  // clients" trigger is wanted — the logic is kept, just not auto-scheduled.
 
-  logger.info({ msg: 'Scheduler started — auto-publish every 5min, daily 03:30 UTC, weekly Sunday 14:30 UTC, weekly trend ideas Monday 03:30 UTC, monthly 02:30 UTC on 1st' });
+  logger.info({ msg: 'Scheduler started — auto-publish every 5min, daily 03:30 UTC, weekly Sunday 14:30 UTC, monthly 02:30 UTC on 1st' });
 }
 
 // ─── Auto-publish ─────────────────────────────────────────────────────────────
@@ -404,7 +405,8 @@ async function runWeeklyClientDigests(): Promise<void> {
 
 // ─── Weekly AI trend ideas ─────────────────────────────────────────────────────
 
-async function runWeeklyTrendIdeas(): Promise<void> {
+// Kept for a possible future manual/admin trigger — no longer auto-scheduled.
+export async function runWeeklyTrendIdeas(): Promise<void> {
   const clients = await prisma.client.findMany({ where: { status: 'ACTIVE' } });
 
   if (clients.length === 0) return;
