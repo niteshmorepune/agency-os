@@ -3,6 +3,8 @@ import { prisma } from '../lib/prisma';
 import { JwtPayload } from '@agencyos/shared';
 import { AUDIT_MODULE_MAP } from '../lib/auditChecks';
 import { PLATFORM_CHECKS } from '../lib/platformChecks';
+import { generateClientReportNarrative } from './ai/clientReportNarrative';
+import { logger } from '../lib/logger';
 
 function scoreColor(score: number | null): string {
   if (score === null) return '#94a3b8';
@@ -619,6 +621,25 @@ export async function generateClientReport(clientId: string, user: JwtPayload): 
   // Posts this month
   const postsThisMonth = recentPosts.filter(p => new Date(p.createdAt) >= startOfMonth).length;
 
+  // AI narrative summary — best-effort, never blocks report generation if it fails
+  let narrative: string | null = null;
+  try {
+    narrative = await generateClientReportNarrative(
+      {
+        clientName: client.name,
+        avgScore: avgScore || null,
+        activePlatformCount: activePlatforms.length,
+        postsThisMonth,
+        topActions: topActions.slice(0, 3).map(a => ({ name: a.name, platform: PLATFORM_DISPLAY[a.platform] ?? a.platform, status: a.status })),
+        lastAudit: lastAudit ? { name: lastAudit.name, overallScore: lastAudit.overallScore } : null,
+      },
+      user,
+      clientId,
+    );
+  } catch (err) {
+    logger.warn({ msg: 'Client report narrative generation failed — report will render without it', clientId, err });
+  }
+
   const platformRows = PLATFORM_ORDER.map(p => {
     const data = optMap[p];
     const score = data?.score ?? null;
@@ -671,6 +692,13 @@ export async function generateClientReport(clientId: string, user: JwtPayload): 
   </div>
   ${agency.reportTagline ? `<div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.25);font-size:12px;opacity:.75;font-style:italic">${agency.reportTagline}</div>` : ''}
 </div>
+
+${narrative ? `
+<!-- AI Summary -->
+<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:18px 22px;margin-bottom:24px">
+  <div style="font-size:10px;color:${primary};font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">This Month at a Glance</div>
+  <p style="color:#374151;font-size:13px;line-height:1.6">${narrative}</p>
+</div>` : ''}
 
 ${lastAudit ? `
 <!-- Last Audit -->
