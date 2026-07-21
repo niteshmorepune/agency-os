@@ -362,6 +362,7 @@ enum IdeaStatus {
 enum IdeaSource {
   MANUAL
   AI_TREND
+  AI_COMPETITOR_GAP
 }
 
 // ─── Client Goals ─────────────────────────────────────────────────────────────

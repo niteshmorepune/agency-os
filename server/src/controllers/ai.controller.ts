@@ -7,6 +7,7 @@ import { getBenchmark, calculateEngagementRate, getRating, getPercentile } from 
 import { getSearchVisibilityAudit } from '../services/ai/searchVisibility';
 import { generatePerformanceInsights } from '../services/ai/performanceInsights';
 import { generateAndSaveTrendIdeas } from '../services/ai/trendIdeas';
+import { generateAndSaveCompetitorGapIdeas } from '../services/ai/competitorGapIdeas';
 
 const SYSTEM_BASE = `You are an expert digital marketing strategist for a premium agency. You have deep expertise in all major social platforms, SEO, paid ads, email marketing, and content strategy. Always output structured, actionable content. Never use filler phrases. Be specific and platform-aware.`;
 
@@ -385,9 +386,11 @@ export async function performanceInsights(req: Request, res: Response): Promise<
   res.json({ data: result });
 }
 
-// On-demand trend-idea generation for one client — the weekly cron
-// (runWeeklyTrendIdeas in lib/scheduler.ts) covers all active clients on
-// Mondays; this lets a team member trigger a fresh batch immediately.
+// On-demand trend-idea generation for one client. The automatic weekly
+// cron across all clients (runWeeklyTrendIdeas in lib/scheduler.ts) was
+// removed 2026-07-21 to stop spending web-search cost on clients nobody
+// was actively planning content for — this on-demand trigger is now the
+// only way trend ideas get generated.
 export async function trendIdeaGenerator(req: Request, res: Response): Promise<void> {
   const schema = z.object({ clientId: z.string() });
   const { clientId } = schema.parse(req.body);
@@ -396,6 +399,19 @@ export async function trendIdeaGenerator(req: Request, res: Response): Promise<v
   if (!client) { res.status(404).json({ error: 'Client not found' }); return; }
 
   const ideas = await generateAndSaveTrendIdeas(client, req.user!);
+  res.status(201).json({ data: ideas });
+}
+
+// On-demand competitor content-gap generation for one client — deliberately
+// on-demand only, no automatic cron (see competitorGapIdeas.ts header).
+export async function competitorGapIdeaGenerator(req: Request, res: Response): Promise<void> {
+  const schema = z.object({ clientId: z.string() });
+  const { clientId } = schema.parse(req.body);
+
+  const client = await prisma.client.findFirst({ where: { id: clientId, agencyId: req.user!.agencyId } });
+  if (!client) { res.status(404).json({ error: 'Client not found' }); return; }
+
+  const ideas = await generateAndSaveCompetitorGapIdeas(client, req.user!);
   res.status(201).json({ data: ideas });
 }
 

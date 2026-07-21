@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowLeft, Lightbulb, Sparkles, RefreshCw, Save, Trash2, PenSquare, ChevronDown, ChevronUp, Flame, Send, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Lightbulb, Sparkles, RefreshCw, Save, Trash2, PenSquare, ChevronDown, ChevronUp, Flame, Send, ExternalLink, Target } from 'lucide-react';
 import { api } from '../api/client';
 import { SafeAIOutput } from '../lib/safeAI';
 import { useAuthStore } from '../store/auth.store';
@@ -22,7 +22,7 @@ interface ContentIdea {
   hook: string;
   outline: string;
   status: string;
-  source: 'MANUAL' | 'AI_TREND';
+  source: 'MANUAL' | 'AI_TREND' | 'AI_COMPETITOR_GAP';
   trendRationale: string | null;
   sourceRefs: string[];
   promoted: boolean;
@@ -68,13 +68,20 @@ function IdeaCard({ idea, canShare, onDelete, onUse, onPromote, promoting, onSen
 }) {
   const [expanded, setExpanded] = useState(false);
   const isTrend = idea.source === 'AI_TREND';
+  const isGap = idea.source === 'AI_COMPETITOR_GAP';
+  const isAiSourced = isTrend || isGap;
   return (
-    <div className={`card p-4 space-y-2 ${idea.status === 'USED' ? 'opacity-60' : ''} ${isTrend ? 'border-orange-200 bg-orange-50/30' : ''}`}>
+    <div className={`card p-4 space-y-2 ${idea.status === 'USED' ? 'opacity-60' : ''} ${isTrend ? 'border-orange-200 bg-orange-50/30' : ''} ${isGap ? 'border-blue-200 bg-blue-50/30' : ''}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           {isTrend && (
             <span className="flex items-center gap-1 text-xs text-white px-2 py-0.5 rounded-full font-medium bg-orange-500">
               <Flame size={11} /> Trending
+            </span>
+          )}
+          {isGap && (
+            <span className="flex items-center gap-1 text-xs text-white px-2 py-0.5 rounded-full font-medium bg-blue-600">
+              <Target size={11} /> Competitor Gap
             </span>
           )}
           <span className={`text-xs text-white px-2 py-0.5 rounded-full font-medium ${PLATFORM_BG[idea.platform] ?? 'bg-gray-500'}`}>
@@ -92,7 +99,7 @@ function IdeaCard({ idea, canShare, onDelete, onUse, onPromote, promoting, onSen
           )}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          {isTrend && canShare && !idea.promoted && (
+          {isAiSourced && canShare && !idea.promoted && (
             <button
               onClick={() => onPromote(idea)}
               disabled={promoting}
@@ -101,7 +108,7 @@ function IdeaCard({ idea, canShare, onDelete, onUse, onPromote, promoting, onSen
               {promoting ? <RefreshCw size={11} className="animate-spin" /> : <Send size={11} />} Share with client
             </button>
           )}
-          {isTrend && canShare && !sentToSmdost && (
+          {isAiSourced && canShare && !sentToSmdost && (
             <button
               onClick={() => onSendToSmdost(idea)}
               disabled={sendingToSmdost}
@@ -133,9 +140,9 @@ function IdeaCard({ idea, canShare, onDelete, onUse, onPromote, promoting, onSen
         <p className="text-xs text-gray-500 italic">"{idea.hook}"</p>
       )}
 
-      {isTrend && idea.trendRationale && (
-        <p className="text-xs text-orange-800 bg-orange-100/70 rounded-lg p-2.5 leading-relaxed">
-          <span className="font-semibold">Why now: </span>{idea.trendRationale}
+      {isAiSourced && idea.trendRationale && (
+        <p className={`text-xs rounded-lg p-2.5 leading-relaxed ${isGap ? 'text-blue-800 bg-blue-100/70' : 'text-orange-800 bg-orange-100/70'}`}>
+          <span className="font-semibold">{isGap ? 'Why this gap: ' : 'Why now: '}</span>{idea.trendRationale}
         </p>
       )}
 
@@ -151,7 +158,7 @@ function IdeaCard({ idea, canShare, onDelete, onUse, onPromote, promoting, onSen
           {expanded && (
             <div className="mt-1.5 space-y-2">
               <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 rounded-lg p-2.5">{idea.outline}</p>
-              {isTrend && idea.sourceRefs.length > 0 && (
+              {isAiSourced && idea.sourceRefs.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {idea.sourceRefs.map((ref, i) => (
                     <a
@@ -336,6 +343,15 @@ export default function ContentIdeas() {
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to research trends'),
   });
 
+  const findGapsMutation = useMutation({
+    mutationFn: (clientId: string) => api.post<{ data: unknown[] }>('/ai/competitor-gap-ideas', { clientId }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['ideas'] });
+      toast.success(res.data.length > 0 ? `Found ${res.data.length} competitor gap idea(s)` : 'No competitor gaps found — add competitors on the client profile first, or none found right now');
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to research competitor gaps'),
+  });
+
   const generate = async () => {
     if (!genNiche) return;
     setGenLoading(true);
@@ -501,6 +517,15 @@ export default function ContentIdeas() {
             >
               {findTrendsMutation.isPending ? <RefreshCw size={14} className="animate-spin" /> : <Flame size={14} />}
               Find Trending Ideas
+            </button>
+            <button
+              onClick={() => clientFilter && findGapsMutation.mutate(clientFilter)}
+              disabled={!clientFilter || findGapsMutation.isPending}
+              title={clientFilter ? 'Research what this client\'s competitors are covering that they aren\'t' : 'Select a client above first'}
+              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              {findGapsMutation.isPending ? <RefreshCw size={14} className="animate-spin" /> : <Target size={14} />}
+              Find Competitor Gaps
             </button>
           </div>
 
