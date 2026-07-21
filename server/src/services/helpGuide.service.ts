@@ -97,7 +97,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
   <div class="toc-article">Adding clients · Assigning team members · Health scores · Client invite · Onboarding questionnaire · Action Items · In-app messaging · Deleting a client</div>
 
   <div class="toc-section">3. Content Studio</div>
-  <div class="toc-article">Creating posts · Templates · Hashtag sets · Media library · Post approval workflow · Content Calendar · Ideas Engine · Trending Ideas · Sharing with clients · Sending to SMDost</div>
+  <div class="toc-article">Creating posts · Templates · Hashtag sets · Media library · Post approval workflow · Content Calendar · Ideas Engine · Trending Ideas · Competitor Gaps · Sharing with clients · Sending to SMDost</div>
 
   <div class="toc-section">4. AI Studio (11 Tools)</div>
   <div class="toc-article">Caption Generator · Hashtag Research · Profile Bio Writer · Audit Report Writer · Content Repurposer · Audience Persona Builder · Competitor Analyzer · Posting Time Optimizer · Engagement Rate Analyzer · AI Search Visibility Audit · AI Usage</div>
@@ -287,7 +287,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
   <div class="section-icon" style="background:#fce7f3;color:#be185d;">✏️</div>
   <div>
     <div class="section-title">3. Content Studio</div>
-    <div class="section-count">7 articles</div>
+    <div class="section-count">8 articles</div>
   </div>
 </div>
 
@@ -361,27 +361,41 @@ const GUIDE_HTML = `<!DOCTYPE html>
     <li><span class="step-num">4</span><span class="step-text">3-5 new ideas appear tagged with an orange <strong>"🔥 Trending"</strong> badge</span></li>
     <li><span class="step-num">5</span><span class="step-text">Each shows a <strong>"Why now"</strong> box explaining the real, current reason it matters — expand <strong>"View outline"</strong> to see the cited sources</span></li>
   </ol>
-  <div class="note"><span class="note-label">NOTE</span><span class="note-text">This also runs automatically every Monday morning for all active clients — new trending ideas appear without anyone clicking anything, and the client's assigned team members get a notification.</span></div>
+  <div class="note"><span class="note-label">NOTE</span><span class="note-text">Find Trending Ideas is on-demand only — click it whenever you want fresh ideas for a client. It no longer runs automatically; this keeps AI usage predictable and lets your team ask for ideas exactly when they're planning content for that client, rather than generating them for every active client whether or not anyone needs them that week.</span></div>
   <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">Trending ideas are staff-only until someone reviews and shares them — the client never sees them automatically.</span></div>
 </div>
 
 <div class="article">
-  <div class="article-title">Sharing a trending idea with the client <span class="role-badge">Owner · Account Manager</span></div>
-  <p class="para">Once your team has reviewed a trending idea and thinks it's worth the client acting on, share it — this turns it into a client-facing Action Item automatically, using the "Why now" explanation as the description, so the client understands why it matters without needing to see any AI/SEO jargon.</p>
+  <div class="article-title">Ideas Engine — Find Competitor Gaps (content your competitors have that you don't)</div>
+  <p class="para">Find Competitor Gaps has Claude search the web for what the client's listed competitors are currently publishing that this client isn't covering — a content-gap analysis, not a generic trend scan. Each idea explains the specific gap and why closing it matters, with real cited sources.</p>
   <ol class="steps">
-    <li><span class="step-num">1</span><span class="step-text">On a trending idea card, click <strong>"Share with client"</strong></span></li>
+    <li><span class="step-num">1</span><span class="step-text">Go to <strong>Content → Ideas → Saved Ideas</strong> tab</span></li>
+    <li><span class="step-num">2</span><span class="step-text">Select a client from the dropdown (required)</span></li>
+    <li><span class="step-num">3</span><span class="step-text">Click <strong>"🎯 Find Competitor Gaps"</strong> — this searches the web and takes a little longer than a normal generation</span></li>
+    <li><span class="step-num">4</span><span class="step-text">3-5 new ideas appear tagged with a blue <strong>"🎯 Competitor Gap"</strong> badge</span></li>
+    <li><span class="step-num">5</span><span class="step-text">Each shows a <strong>"Why now"</strong> box explaining the specific gap — expand <strong>"View outline"</strong> to see the cited sources</span></li>
+  </ol>
+  <div class="note"><span class="note-label">NOTE</span><span class="note-text">This is skipped automatically if the client has no competitors listed in their client record — add competitors first (Client → Overview → Competitors) so there's something real to compare against.</span></div>
+  <div class="tip"><span class="tip-label">TIP</span><span class="tip-text">Competitor gap ideas are staff-only until someone reviews and shares them, same as trending ideas — the client never sees them automatically.</span></div>
+</div>
+
+<div class="article">
+  <div class="article-title">Sharing a trending or competitor-gap idea with the client <span class="role-badge">Owner · Account Manager</span></div>
+  <p class="para">Once your team has reviewed a trending or competitor-gap idea and thinks it's worth the client acting on, share it — this turns it into a client-facing Action Item automatically, using the "Why now" explanation as the description, so the client understands why it matters without needing to see any AI/SEO jargon.</p>
+  <ol class="steps">
+    <li><span class="step-num">1</span><span class="step-text">On an idea card, click <strong>"Share with client"</strong></span></li>
     <li><span class="step-num">2</span><span class="step-text">A matching Action Item is created for that client and the client receives an email notification, same as any other action item</span></li>
     <li><span class="step-num">3</span><span class="step-text">The idea card updates to show a <strong>"Shared with client"</strong> badge instead of the button</span></li>
     <li><span class="step-num">4</span><span class="step-text">Track it afterward from the client's own Action Items tab, same as any manually-created item</span></li>
   </ol>
-  <div class="note"><span class="note-label">NOTE</span><span class="note-text">Each trending idea can only be shared once — the button disappears once it's been shared, to avoid emailing the client twice about the same idea.</span></div>
+  <div class="note"><span class="note-label">NOTE</span><span class="note-text">Each idea can only be shared once — the button disappears once it's been shared, to avoid emailing the client twice about the same idea.</span></div>
 </div>
 
 <div class="article">
-  <div class="article-title">Sending a trending idea to SMDost <span class="role-badge">Owner · Account Manager</span></div>
-  <p class="para">If the client also has a linked SMDost account, you can turn a trending idea straight into a content brief there — no need to retype the idea into SMDost by hand.</p>
+  <div class="article-title">Sending a trending or competitor-gap idea to SMDost <span class="role-badge">Owner · Account Manager</span></div>
+  <p class="para">If the client also has a linked SMDost account, you can turn a trending or competitor-gap idea straight into a content brief there — no need to retype the idea into SMDost by hand.</p>
   <ol class="steps">
-    <li><span class="step-num">1</span><span class="step-text">On a trending idea card, click <strong>"Send to SMDost"</strong></span></li>
+    <li><span class="step-num">1</span><span class="step-text">On an idea card, click <strong>"Send to SMDost"</strong></span></li>
     <li><span class="step-num">2</span><span class="step-text">The idea's title, hook, outline, and "Why now" rationale are sent to SMDost as a new content brief for that client, ready for the team to generate content from</span></li>
     <li><span class="step-num">3</span><span class="step-text">The card updates to show a <strong>"Sent to SMDost"</strong> badge for the rest of your session</span></li>
   </ol>
@@ -631,6 +645,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
     <li><span class="step-num">2</span><span class="step-text">Click <strong>"Send Report Now"</strong> — generates a PDF and emails it to the client's contact email</span></li>
     <li><span class="step-num">3</span><span class="step-text">A confirmation toast appears once sent</span></li>
   </ol>
+  <div class="note"><span class="note-label">NOTE</span><span class="note-text">Near the top of the PDF, a "This Month at a Glance" box gives an AI-written plain-English summary of the period's numbers — grounded only in the report's own stats, it never invents a figure that isn't already in the report. If there isn't enough data for a meaningful summary, the box is simply left out.</span></div>
   <div class="note"><span class="note-label">NOTE</span><span class="note-text">SMTP must be configured in Settings → API Keys before email sending works.</span></div>
 </div>
 
@@ -639,7 +654,7 @@ const GUIDE_HTML = `<!DOCTYPE html>
   <ol class="steps">
     <li><span class="step-num">1</span><span class="step-text">Open a Client → go to the <strong>Reports</strong> tab</span></li>
     <li><span class="step-num">2</span><span class="step-text">In the Schedule dropdown, select <strong>Monthly</strong></span></li>
-    <li><span class="step-num">3</span><span class="step-text">Click <strong>Save Schedule</strong> — system auto-emails PDF on the 1st of each month</span></li>
+    <li><span class="step-num">3</span><span class="step-text">Click <strong>Save Schedule</strong> — system auto-emails PDF (with the same AI "This Month at a Glance" summary) on the 1st of each month</span></li>
     <li><span class="step-num">4</span><span class="step-text">To stop, set schedule back to None</span></li>
   </ol>
 </div>
