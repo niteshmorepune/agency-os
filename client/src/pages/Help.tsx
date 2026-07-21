@@ -234,25 +234,34 @@ const SECTIONS: Section[] = [
         content: [
           { type: 'para', text: 'Unlike the AI Generate tab (which writes ideas from a topic you type), Find Trending Ideas has Claude search the web for what is genuinely trending right now — current platform algorithm shifts, formats, and challenges relevant to that specific client — and explains why each idea matters with real cited sources.' },
           { type: 'steps', items: ['Go to Content → Ideas → Saved Ideas tab', 'Select a client from the dropdown (required)', 'Click "🔥 Find Trending Ideas" — this takes a little longer than a normal generation since it searches the web first', '3-5 new ideas appear tagged with an orange "🔥 Trending" badge', 'Each trending idea shows a "Why now" box explaining the real, current reason it matters — expand "View outline" to see the specific sources Claude cited'] },
-          { type: 'note', text: 'This also runs automatically every Monday morning for all active clients — new trending ideas show up in Saved Ideas without anyone needing to click anything, and the client\'s assigned team members get a notification.' },
+          { type: 'note', text: 'Find Trending Ideas is on-demand only — click it whenever you want fresh ideas for a client. It no longer runs automatically; this keeps AI usage predictable and lets your team ask for ideas exactly when they\'re planning content for that client, rather than generating them for every active client whether or not anyone needs them that week.' },
           { type: 'tip', text: 'Trending ideas are staff-only until someone reviews and shares them — the client never sees them automatically.' },
         ],
       },
       {
-        title: 'Sharing a trending idea with the client',
-        role: 'Owner · Account Manager',
+        title: 'Ideas Engine — Find Competitor Gaps (content your competitors have that you don\'t)',
         content: [
-          { type: 'para', text: 'Once your team has reviewed a trending idea and thinks it\'s worth the client acting on, share it — this turns it into a client-facing Action Item automatically, using the "Why now" explanation as the description, so the client understands why it matters without needing to see any AI/SEO jargon.' },
-          { type: 'steps', items: ['On a trending idea card, click "Share with client"', 'A matching Action Item is created for that client and the client receives an email notification, same as any other action item', 'The idea card updates to show a "Shared with client" badge instead of the button', 'Track it afterward from the client\'s own Action Items tab, same as any manually-created item'] },
-          { type: 'note', text: 'Each trending idea can only be shared once — the button disappears once it\'s been shared, to avoid emailing the client twice about the same idea.' },
+          { type: 'para', text: 'Find Competitor Gaps has Claude search the web for what the client\'s listed competitors are currently publishing that this client isn\'t covering — a content-gap analysis, not a generic trend scan. Each idea explains the specific gap and why closing it matters, with real cited sources.' },
+          { type: 'steps', items: ['Go to Content → Ideas → Saved Ideas tab', 'Select a client from the dropdown (required)', 'Click "🎯 Find Competitor Gaps" — this searches the web and takes a little longer than a normal generation', '3-5 new ideas appear tagged with a blue "🎯 Competitor Gap" badge', 'Each idea shows a "Why now" box explaining the specific gap — expand "View outline" to see the sources Claude cited'] },
+          { type: 'note', text: 'This is skipped automatically if the client has no competitors listed in their client record — add competitors first (Client → Overview → Competitors) so there\'s something real to compare against.' },
+          { type: 'tip', text: 'Competitor gap ideas are staff-only until someone reviews and shares them, same as trending ideas — the client never sees them automatically.' },
         ],
       },
       {
-        title: 'Sending a trending idea to SMDost',
+        title: 'Sharing a trending or competitor-gap idea with the client',
         role: 'Owner · Account Manager',
         content: [
-          { type: 'para', text: 'If the client also has a linked SMDost account, you can turn a trending idea straight into a content brief there — no need to retype the idea into SMDost by hand.' },
-          { type: 'steps', items: ['On a trending idea card, click "Send to SMDost"', 'The idea\'s title, hook, outline, and "Why now" rationale are sent over to SMDost as a new content brief for that client, ready for the team to generate content from', 'The card updates to show a "Sent to SMDost" badge for the rest of your session'] },
+          { type: 'para', text: 'Once your team has reviewed a trending or competitor-gap idea and thinks it\'s worth the client acting on, share it — this turns it into a client-facing Action Item automatically, using the "Why now" explanation as the description, so the client understands why it matters without needing to see any AI/SEO jargon.' },
+          { type: 'steps', items: ['On a trending or competitor-gap idea card, click "Share with client"', 'A matching Action Item is created for that client and the client receives an email notification, same as any other action item', 'The idea card updates to show a "Shared with client" badge instead of the button', 'Track it afterward from the client\'s own Action Items tab, same as any manually-created item'] },
+          { type: 'note', text: 'Each idea can only be shared once — the button disappears once it\'s been shared, to avoid emailing the client twice about the same idea.' },
+        ],
+      },
+      {
+        title: 'Sending a trending or competitor-gap idea to SMDost',
+        role: 'Owner · Account Manager',
+        content: [
+          { type: 'para', text: 'If the client also has a linked SMDost account, you can turn a trending or competitor-gap idea straight into a content brief there — no need to retype the idea into SMDost by hand.' },
+          { type: 'steps', items: ['On an idea card, click "Send to SMDost"', 'The idea\'s title, hook, outline, and "Why now" rationale are sent over to SMDost as a new content brief for that client, ready for the team to generate content from', 'The card updates to show a "Sent to SMDost" badge for the rest of your session'] },
           { type: 'note', text: 'This is separate from "Share with client" — sending to SMDost is an internal handoff to the content-production team, it does not notify or create anything visible to the client by itself.' },
           { type: 'tip', text: 'If the client isn\'t linked to an SMDost account yet, you\'ll see an error instead of a silent failure — check with an Admin that the client\'s SMDost link was set up during onboarding.' },
         ],
@@ -430,6 +439,7 @@ const SECTIONS: Section[] = [
         title: 'Downloading client reports',
         content: [
           { type: 'steps', items: ['Go to Analytics → select a client', 'Click Download PDF Report — generates a branded PDF with all stats', 'The report uses your agency\'s branding (logo, colours) from Settings'] },
+          { type: 'note', text: 'Near the top of the PDF, a "This Month at a Glance" box gives an AI-written plain-English summary of the period\'s numbers — grounded only in the report\'s own stats, it never invents a figure that isn\'t already in the report. If there isn\'t enough data for a meaningful summary, the box is simply left out rather than filled with generic text.' },
           { type: 'tip', text: 'Set up your agency branding in Settings → Branding before sending any reports to clients.' },
         ],
       },
@@ -437,7 +447,7 @@ const SECTIONS: Section[] = [
         title: 'Sending a client report by email',
         role: 'Owner · Account Manager',
         content: [
-          { type: 'steps', items: ['Open a Client → go to the Reports tab', 'Click "Send Report Now" — the system generates a PDF and emails it to the client\'s registered email', 'A confirmation toast appears once sent'] },
+          { type: 'steps', items: ['Open a Client → go to the Reports tab', 'Click "Send Report Now" — the system generates a PDF (including the "This Month at a Glance" AI summary) and emails it to the client\'s registered email', 'A confirmation toast appears once sent'] },
           { type: 'note', text: 'SMTP must be configured in Settings → API Keys before email sending works.' },
         ],
       },
@@ -445,7 +455,7 @@ const SECTIONS: Section[] = [
         title: 'Scheduling automated monthly reports',
         role: 'Owner · Account Manager',
         content: [
-          { type: 'steps', items: ['Open a Client → go to the Reports tab', 'In the Schedule dropdown, select Monthly', 'Click Save Schedule — the system will auto-email the PDF report on the 1st of each month', 'To stop, set the schedule back to None'] },
+          { type: 'steps', items: ['Open a Client → go to the Reports tab', 'In the Schedule dropdown, select Monthly', 'Click Save Schedule — the system will auto-email the PDF report (with the same AI "This Month at a Glance" summary) on the 1st of each month', 'To stop, set the schedule back to None'] },
           { type: 'tip', text: 'The "Last sent" date shows when the report was most recently emailed, so you can confirm delivery.' },
         ],
       },
