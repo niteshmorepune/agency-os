@@ -1,10 +1,28 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 import { authenticate } from '../middleware/auth.middleware';
+import { serviceKeyAuth } from '../middleware/service-key.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import * as ctrl from '../controllers/ai.controller';
 
 const router = Router();
+
+// GET /usage also accepts a service key from the NEDS CRM (server-to-server
+// AI usage/cost reporting, folded into the CRM's own AI Usage Report).
+// Registered before the blanket session-auth guard below so it isn't limited
+// to logged-in Drishti users — every other AI route here stays session-only;
+// broadening those to service-key would let anyone holding the shared key
+// generate content as the agency OWNER, which is a materially bigger risk
+// than exposing read-only usage totals.
+const serviceKeyOrAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
+  if (req.headers['x-service-key']) {
+    void serviceKeyAuth(req, res, next);
+  } else {
+    authenticate(req, res, next);
+  }
+};
+router.get('/usage', serviceKeyOrAuthenticate, asyncHandler(ctrl.getAIUsage));
+
 router.use(authenticate);
 
 const aiLimiter = rateLimit({
@@ -35,6 +53,5 @@ router.post('/search-visibility', asyncHandler(ctrl.searchVisibilityAudit));
 router.post('/performance-insights', asyncHandler(ctrl.performanceInsights));
 router.post('/trend-ideas', asyncHandler(ctrl.trendIdeaGenerator));
 router.post('/competitor-gap-ideas', asyncHandler(ctrl.competitorGapIdeaGenerator));
-router.get('/usage', asyncHandler(ctrl.getAIUsage));
 
 export default router;
