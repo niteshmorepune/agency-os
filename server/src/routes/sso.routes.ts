@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
@@ -14,6 +14,19 @@ const COOKIE_BASE = {
   sameSite: 'strict' as const,
 };
 
+const FRONTEND_URL = process.env.FRONTEND_URL ?? 'https://nedsdrishti.in';
+
+/**
+ * A client arriving here came from a link in the NEDS CRM portal, not from
+ * typing a URL — so any failure must land them on a page that explains what
+ * happened and offers a way forward, never a bare JSON error body in the
+ * browser. Redirects to the login page with a `sso_error` code the frontend
+ * turns into a friendly message (see Login.tsx).
+ */
+function redirectWithError(res: Response, code: string): void {
+  res.redirect(`${FRONTEND_URL}/login?sso_error=${code}`);
+}
+
 /**
  * GET /api/sso?token=...
  *
@@ -26,14 +39,14 @@ router.get('/', asyncHandler(async (req, res) => {
   const token = req.query.token as string | undefined;
 
   if (!token) {
-    res.status(400).json({ error: 'Missing token' });
+    redirectWithError(res, 'missing_token');
     return;
   }
 
   const ssoSecret = process.env.PORTAL_SSO_SECRET;
   if (!ssoSecret) {
     logger.error({ msg: 'PORTAL_SSO_SECRET is not configured' });
-    res.status(500).json({ error: 'SSO not configured' });
+    redirectWithError(res, 'not_configured');
     return;
   }
 
@@ -42,7 +55,7 @@ router.get('/', asyncHandler(async (req, res) => {
     claims = jwt.verify(token, ssoSecret, { algorithms: ['HS256'] }) as typeof claims;
   } catch (err) {
     logger.warn({ msg: 'Invalid SSO token', err: (err as Error).message });
-    res.status(401).json({ error: 'Invalid or expired SSO token' });
+    redirectWithError(res, 'expired');
     return;
   }
 
@@ -52,7 +65,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
   if (!user) {
     logger.warn({ msg: 'SSO: no active CLIENT user for email', email: claims.email });
-    res.status(401).json({ error: 'Account not found or inactive' });
+    redirectWithError(res, 'no_access');
     return;
   }
 
@@ -83,7 +96,7 @@ router.get('/', asyncHandler(async (req, res) => {
   res.cookie('access_token',  accessToken,  { ...COOKIE_BASE, maxAge: 15 * 60 * 1000 });
   res.cookie('refresh_token', refreshToken, { ...COOKIE_BASE, maxAge: 7 * 24 * 60 * 60 * 1000, path: '/api/auth/refresh' });
 
-  res.redirect(process.env.FRONTEND_URL ?? 'https://nedsdrishti.in');
+  res.redirect(FRONTEND_URL);
 }));
 
 export default router;
