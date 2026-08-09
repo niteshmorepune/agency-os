@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,10 +14,26 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+// Shown when a client arrives here after a failed single-sign-on redirect
+// from the NEDS CRM portal (see server/src/routes/sso.routes.ts) — every
+// failure lands on this page with an `sso_error` code instead of a bare
+// JSON error, so there's always a plain-English explanation and a way to
+// still sign in manually.
+const SSO_ERROR_MESSAGES: Record<string, string> = {
+  no_access: "You don't have access to this dashboard yet. Please contact NEDS support to get connected.",
+  expired: 'Your sign-in link expired. Please return to the client portal and click the link again.',
+  missing_token: 'That sign-in link looks incomplete. Please return to the client portal and try again.',
+  not_configured: 'Single sign-on is temporarily unavailable. Please sign in with your email and password below, or contact support.',
+};
+
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const setUser = useAuthStore(s => s.setUser);
-  const [error, setError] = useState('');
+  const ssoErrorCode = searchParams.get('sso_error');
+  const [error, setError] = useState(
+    ssoErrorCode ? (SSO_ERROR_MESSAGES[ssoErrorCode] ?? 'Single sign-on failed. Please sign in below.') : ''
+  );
   const [showPassword, setShowPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
