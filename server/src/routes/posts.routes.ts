@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
 import { serviceKeyAuth } from '../middleware/service-key.middleware';
+import { serviceKeyLimiter } from '../middleware/service-key-rate-limit.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
 import { createNotification } from '../lib/notify';
@@ -12,9 +13,11 @@ import DOMPurify from 'isomorphic-dompurify';
 
 const router = Router();
 
-// Accept service key (from SMDost brief-push) OR normal session auth.
-// Service key grants OWNER-level access, which is safe for server-to-server
-// calls from SMDost where we trust the source.
+// Only POST /api/posts accepts a service key (SMDost pushing an approved
+// brief's content in as a scheduled PostDraft) — scoped to this one route,
+// not the whole router, so a leaked key can't read/edit/delete/approve/
+// reject/publish every client's content. Every other route below requires a
+// real Drishti session.
 const serviceKeyOrAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
   if (req.headers['x-service-key']) {
     void serviceKeyAuth(req, res, next);
@@ -22,8 +25,6 @@ const serviceKeyOrAuthenticate = (req: Request, res: Response, next: NextFunctio
     authenticate(req, res, next);
   }
 };
-
-router.use(serviceKeyOrAuthenticate);
 
 const postSchema = z.object({
   clientId: z.string(),
@@ -42,22 +43,7 @@ function sanitize(s: string) {
   return DOMPurify.sanitize(s, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
 }
 
-router.get('/', asyncHandler(async (req, res) => {
-  const { clientId, status, platform, page = '1', limit = '20' } = req.query as Record<string, string>;
-  const where: Record<string, unknown> = { client: { agencyId: req.user!.agencyId } };
-  if (clientId) where.clientId = clientId;
-  if (status) where.status = status;
-  if (platform) where.platforms = { has: platform };
-  const take = Math.min(parseInt(limit), 100);
-  const skip = (parseInt(page) - 1) * take;
-  const [posts, total] = await Promise.all([
-    prisma.postDraft.findMany({ where, skip, take, orderBy: { createdAt: 'desc' }, include: { createdBy: { select: { name: true } } } }),
-    prisma.postDraft.count({ where }),
-  ]);
-  res.json({ data: posts, pagination: { page: parseInt(page), limit: take, total, totalPages: Math.ceil(total / take) } });
-}));
-
-router.post('/', asyncHandler(async (req, res) => {
+router.post('/', serviceKeyOrAuthenticate, serviceKeyLimiter, asyncHandler(async (req, res) => {
   const data = postSchema.parse(req.body);
   const post = await prisma.postDraft.create({
     data: {
@@ -76,6 +62,24 @@ router.post('/', asyncHandler(async (req, res) => {
     },
   });
   res.status(201).json({ data: post });
+}));
+
+// Every route below here is session-only — no X-Service-Key acceptance.
+router.use(authenticate);
+
+router.get('/', asyncHandler(async (req, res) => {
+  const { clientId, status, platform, page = '1', limit = '20' } = req.query as Record<string, string>;
+  const where: Record<string, unknown> = { client: { agencyId: req.user!.agencyId } };
+  if (clientId) where.clientId = clientId;
+  if (status) where.status = status;
+  if (platform) where.platforms = { has: platform };
+  const take = Math.min(parseInt(limit), 100);
+  const skip = (parseInt(page) - 1) * take;
+  const [posts, total] = await Promise.all([
+    prisma.postDraft.findMany({ where, skip, take, orderBy: { createdAt: 'desc' }, include: { createdBy: { select: { name: true } } } }),
+    prisma.postDraft.count({ where }),
+  ]);
+  res.json({ data: posts, pagination: { page: parseInt(page), limit: take, total, totalPages: Math.ceil(total / take) } });
 }));
 
 router.get('/:id', asyncHandler(async (req, res) => {
