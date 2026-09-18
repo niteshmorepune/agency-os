@@ -17,10 +17,12 @@ const router = Router();
 // brief's content in as a scheduled PostDraft) — scoped to this one route,
 // not the whole router, so a leaked key can't read/edit/delete/approve/
 // reject/publish every client's content. Every other route below requires a
-// real Drishti session.
+// real Drishti session. Scoped to the 'smdost' caller identity — this is the
+// ONLY Drishti route SMDost calls, so a leaked SMDost key can't be replayed
+// against the CRM's own provisioning/metrics/usage routes either.
 const serviceKeyOrAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
   if (req.headers['x-service-key']) {
-    void serviceKeyAuth(req, res, next);
+    void serviceKeyAuth('smdost')(req, res, next);
   } else {
     authenticate(req, res, next);
   }
