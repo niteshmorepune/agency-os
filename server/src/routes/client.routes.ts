@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
 import { serviceKeyAuth } from '../middleware/service-key.middleware';
+import { serviceKeyLimiter } from '../middleware/service-key-rate-limit.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
@@ -13,9 +14,10 @@ import goalsRouter from './goals.routes';
 
 const router = Router();
 
-// POST /api/clients also accepts a service key from the CRM (deal-won provisioning).
-// All other routes require a normal session. serviceKeyAuth resolves as OWNER so
-// requireRole checks below are satisfied for service-key callers automatically.
+// Only these two routes accept a service key from the CRM (deal-won client
+// provisioning, and the monthly wins-note metrics pull) — scoped narrowly to
+// each, not the whole router, so a leaked key can't read/edit/delete/reassign
+// every other client. Every other route below requires a real Drishti session.
 const serviceKeyOrAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
   if (req.headers['x-service-key']) {
     void serviceKeyAuth(req, res, next);
@@ -24,16 +26,7 @@ const serviceKeyOrAuthenticate = (req: Request, res: Response, next: NextFunctio
   }
 };
 
-router.use(serviceKeyOrAuthenticate);
-
-router.get('/', asyncHandler(ctrl.listClients));
-router.post('/', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.createClient));
-router.get('/:id', asyncHandler(ctrl.getClient));
-router.put('/:id', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.updateClient));
-router.delete('/:id', requireRole(Role.OWNER), asyncHandler(ctrl.deleteClient));
-router.post('/:id/assign',  requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.assignTeamMember));
-router.delete('/:id/assign', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.removeTeamMember));
-router.get('/:id/dashboard', asyncHandler(ctrl.getClientDashboard));
+router.post('/', serviceKeyOrAuthenticate, serviceKeyLimiter, requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.createClient));
 
 // Monthly delivery metrics for a date range — used by the NEDS CRM's monthly
 // wins note (server-to-server, X-Service-Key) to fold real marketing-delivery
@@ -41,7 +34,7 @@ router.get('/:id/dashboard', asyncHandler(ctrl.getClientDashboard));
 // weekly client digest already computes (see services/ai/digest.ts /
 // lib/scheduler.ts runWeeklyClientDigests), just parameterized by date range
 // instead of a hardcoded week.
-router.get('/:id/monthly-metrics', asyncHandler(async (req, res) => {
+router.get('/:id/monthly-metrics', serviceKeyOrAuthenticate, serviceKeyLimiter, asyncHandler(async (req, res) => {
   // { offset: true } is required — the CRM sends Carbon's toIso8601String()
   // format ("2026-06-01T00:00:00+00:00"), which Zod's datetime() rejects by
   // default (it only accepts a bare "Z" suffix unless offset is allowed).
@@ -67,6 +60,17 @@ router.get('/:id/monthly-metrics', asyncHandler(async (req, res) => {
 
   res.json({ data: { postsPublished, auditsCompleted, actionItemsDone } });
 }));
+
+// Every route below here is session-only — no X-Service-Key acceptance.
+router.use(authenticate);
+
+router.get('/', asyncHandler(ctrl.listClients));
+router.get('/:id', asyncHandler(ctrl.getClient));
+router.put('/:id', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.updateClient));
+router.delete('/:id', requireRole(Role.OWNER), asyncHandler(ctrl.deleteClient));
+router.post('/:id/assign',  requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.assignTeamMember));
+router.delete('/:id/assign', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(ctrl.removeTeamMember));
+router.get('/:id/dashboard', asyncHandler(ctrl.getClientDashboard));
 
 // ─── Action Items ─────────────────────────────────────────────────────────────
 

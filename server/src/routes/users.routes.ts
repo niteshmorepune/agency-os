@@ -4,6 +4,7 @@ import crypto from 'crypto';
 
 import { authenticate, requireOwner, requireRole } from '../middleware/auth.middleware';
 import { serviceKeyAuth } from '../middleware/service-key.middleware';
+import { serviceKeyLimiter } from '../middleware/service-key-rate-limit.middleware';
 import { asyncHandler } from '../lib/asyncHandler';
 import { prisma } from '../lib/prisma';
 import { hashPassword } from '../services/auth.service';
@@ -12,9 +13,10 @@ import { Role } from '@agencyos/shared';
 
 const router = Router();
 
-// POST /api/users also accepts a service key from the CRM so it can create a
-// CLIENT-role portal user on deal won. serviceKeyAuth resolves as OWNER, which
-// satisfies requireOwner for all subsequent routes.
+// Only POST /api/users accepts a service key (the CRM creating a CLIENT-role
+// portal user on deal won) — scoped to this one route, not the whole router,
+// so a leaked key can only ever do the one thing this integration needs.
+// Every other route below requires a real Drishti session.
 const serviceKeyOrAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
   if (req.headers['x-service-key']) {
     void serviceKeyAuth(req, res, next);
@@ -23,12 +25,10 @@ const serviceKeyOrAuthenticate = (req: Request, res: Response, next: NextFunctio
   }
 };
 
-router.use(serviceKeyOrAuthenticate);
-
 // Listing users is needed by Account Managers too (e.g. the "assign team
 // member" picker on Client Detail, which POST /clients/:id/assign already
 // permits for ACCOUNT_MANAGER) — only mutating routes below require OWNER.
-router.get('/', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(async (req, res) => {
+router.get('/', authenticate, requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(async (req, res) => {
   const users = await prisma.user.findMany({
     where: { agencyId: req.user!.agencyId },
     select: { id: true, email: true, name: true, role: true, avatarUrl: true, isActive: true, lastLoginAt: true, createdAt: true },
@@ -39,10 +39,13 @@ router.get('/', requireRole(Role.OWNER, Role.ACCOUNT_MANAGER), asyncHandler(asyn
 
 // Service-key callers (CRM) still create the user with an explicit password
 // directly — that integration is unaffected by the invite-link flow below.
+// role is intentionally a literal, not the full enum: this path only ever
+// exists to provision a client portal login (see ProvisionClientExternallyJob
+// in the CRM), so a leaked key can't use it to mint a staff-role account.
 const serviceKeyCreateSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1),
-  role: z.enum(['ACCOUNT_MANAGER', 'CONTENT_CREATOR', 'SEO_ANALYST', 'CLIENT']),
+  role: z.literal('CLIENT'),
   password: z.string().min(8),
 });
 
@@ -59,7 +62,7 @@ const inviteSchema = z.object({
   clientId: z.string().optional(),
 });
 
-router.post('/', requireOwner, asyncHandler(async (req, res) => {
+router.post('/', serviceKeyOrAuthenticate, serviceKeyLimiter, requireOwner, asyncHandler(async (req, res) => {
   if (req.headers['x-service-key']) {
     const { email, name, role, password } = serviceKeyCreateSchema.parse(req.body);
     const passwordHash = await hashPassword(password);
@@ -103,7 +106,7 @@ router.post('/', requireOwner, asyncHandler(async (req, res) => {
   res.status(201).json({ data: user });
 }));
 
-router.put('/:id', requireOwner, asyncHandler(async (req, res) => {
+router.put('/:id', authenticate, requireOwner, asyncHandler(async (req, res) => {
   if (req.params.id === req.user!.userId) { res.status(400).json({ error: 'Cannot change your own role' }); return; }
   const schema = z.object({ name: z.string().min(1).optional(), role: z.enum(['OWNER', 'ACCOUNT_MANAGER', 'CONTENT_CREATOR', 'SEO_ANALYST', 'CLIENT']).optional(), isActive: z.boolean().optional() });
   const data = schema.parse(req.body);
@@ -116,7 +119,7 @@ router.put('/:id', requireOwner, asyncHandler(async (req, res) => {
   res.json({ data: user });
 }));
 
-router.delete('/:id', requireOwner, asyncHandler(async (req, res) => {
+router.delete('/:id', authenticate, requireOwner, asyncHandler(async (req, res) => {
   const { id } = req.params;
   const ownerId = req.user!.userId;
   const agencyId = req.user!.agencyId;
