@@ -16,10 +16,12 @@ import { logger } from '../lib/logger';
  * content-push call) are two distinct secrets, so a leak of one never grants
  * access to the other caller's routes. Each route passes the ONE scope it
  * actually expects — see the `serviceKeyOrAuthenticate` guard in each routes
- * file. SERVICE_API_KEY (legacy, unscoped) is still accepted everywhere as a
- * fallback during rollout — remove it from every route's `legacyKeys` list,
- * then unset SERVICE_API_KEY entirely, once the CRM and SMDost are both
- * confirmed sending their new scoped key (see backlog memory).
+ * file.
+ *
+ * The legacy unscoped SERVICE_API_KEY fallback (accepted here during the
+ * 2026-09-18 rollout) has been retired — both callers are confirmed sending
+ * their new scoped key, verified via a real live call, not just deployed
+ * code. SERVICE_API_KEY itself can be unset from .env at any time now.
  *
  * Because this grants OWNER-level access, every route that accepts it must be
  * an explicit, narrow allowlist (see the `serviceKeyOrAuthenticate` guard in
@@ -45,19 +47,11 @@ export function serviceKeyAuth(scope: ServiceKeyScope) {
     }
 
     const scoped = process.env[SCOPE_ENV_VAR[scope]];
-    const legacy = process.env.SERVICE_API_KEY;
 
-    const matchedScoped = !!scoped && timingSafeEqual(key, scoped);
-    const matchedLegacy = !matchedScoped && !!legacy && timingSafeEqual(key, legacy);
-
-    if (!matchedScoped && !matchedLegacy) {
+    if (!scoped || !timingSafeEqual(key, scoped)) {
       logger.warn({ path: req.originalUrl, method: req.method, ip: req.ip, scope }, 'service key auth failed');
       res.status(401).json({ error: 'Invalid or missing service key' });
       return;
-    }
-
-    if (matchedLegacy) {
-      logger.warn({ path: req.originalUrl, method: req.method, ip: req.ip, scope }, 'service key auth succeeded via LEGACY unscoped key — rotate this caller to the scoped key');
     }
 
     // Find the OWNER user to resolve agencyId — this app is single-tenant (one
