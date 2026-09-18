@@ -6,12 +6,20 @@ import { logger } from '../lib/logger';
 
 /**
  * Alternative auth for server-to-server calls (e.g. NEDS CRM provisioning a
- * client on deal won). Checks the X-Service-Key header against SERVICE_API_KEY
- * in the environment, then injects the agency OWNER's identity as req.user so
- * downstream route handlers work without any code changes.
+ * client on deal won, or SMDost pushing approved content for scheduling).
+ * Checks the X-Service-Key header against a caller-scoped secret, then
+ * injects the agency OWNER's identity as req.user so downstream route
+ * handlers work without any code changes.
  *
- * The key must be a long random secret shared between the CRM and this server;
- * set SERVICE_API_KEY in .env on both sides.
+ * Scoped per CALLER, not just per route: SERVICE_API_KEY_CRM (the CRM's own
+ * provisioning/metrics/usage calls) and SERVICE_API_KEY_SMDOST (SMDost's own
+ * content-push call) are two distinct secrets, so a leak of one never grants
+ * access to the other caller's routes. Each route passes the ONE scope it
+ * actually expects — see the `serviceKeyOrAuthenticate` guard in each routes
+ * file. SERVICE_API_KEY (legacy, unscoped) is still accepted everywhere as a
+ * fallback during rollout — remove it from every route's `legacyKeys` list,
+ * then unset SERVICE_API_KEY entirely, once the CRM and SMDost are both
+ * confirmed sending their new scoped key (see backlog memory).
  *
  * Because this grants OWNER-level access, every route that accepts it must be
  * an explicit, narrow allowlist (see the `serviceKeyOrAuthenticate` guard in
@@ -19,42 +27,62 @@ import { logger } from '../lib/logger';
  * leaked key otherwise becomes a full account-takeover backdoor, not just
  * access to the one integration it was meant for.
  */
-export async function serviceKeyAuth(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  const key = req.headers['x-service-key'];
-  const expected = process.env.SERVICE_API_KEY;
+export type ServiceKeyScope = 'crm' | 'smdost';
 
-  if (!expected || typeof key !== 'string' || !timingSafeEqual(key, expected)) {
-    logger.warn({ path: req.originalUrl, method: req.method, ip: req.ip }, 'service key auth failed');
-    res.status(401).json({ error: 'Invalid or missing service key' });
-    return;
-  }
+const SCOPE_ENV_VAR: Record<ServiceKeyScope, string> = {
+  crm: 'SERVICE_API_KEY_CRM',
+  smdost: 'SERVICE_API_KEY_SMDOST',
+};
 
-  // Find the OWNER user to resolve agencyId — this app is single-tenant (one
-  // agency), so the first OWNER is always the right context.
-  const owner = await prisma.user.findFirst({
-    where: { role: Role.OWNER },
-    select: { id: true, agencyId: true, email: true },
-  });
+export function serviceKeyAuth(scope: ServiceKeyScope) {
+  return async function (req: Request, res: Response, next: NextFunction): Promise<void> {
+    const key = req.headers['x-service-key'];
 
-  if (!owner) {
-    res.status(503).json({ error: 'No owner account configured in Drishti' });
-    return;
-  }
+    if (typeof key !== 'string') {
+      logger.warn({ path: req.originalUrl, method: req.method, ip: req.ip, scope }, 'service key auth failed');
+      res.status(401).json({ error: 'Invalid or missing service key' });
+      return;
+    }
 
-  logger.info({ path: req.originalUrl, method: req.method, ip: req.ip }, 'service key auth succeeded');
+    const scoped = process.env[SCOPE_ENV_VAR[scope]];
+    const legacy = process.env.SERVICE_API_KEY;
 
-  req.user = {
-    userId: owner.id,
-    agencyId: owner.agencyId,
-    role: Role.OWNER,
-    email: owner.email,
+    const matchedScoped = !!scoped && timingSafeEqual(key, scoped);
+    const matchedLegacy = !matchedScoped && !!legacy && timingSafeEqual(key, legacy);
+
+    if (!matchedScoped && !matchedLegacy) {
+      logger.warn({ path: req.originalUrl, method: req.method, ip: req.ip, scope }, 'service key auth failed');
+      res.status(401).json({ error: 'Invalid or missing service key' });
+      return;
+    }
+
+    if (matchedLegacy) {
+      logger.warn({ path: req.originalUrl, method: req.method, ip: req.ip, scope }, 'service key auth succeeded via LEGACY unscoped key — rotate this caller to the scoped key');
+    }
+
+    // Find the OWNER user to resolve agencyId — this app is single-tenant (one
+    // agency), so the first OWNER is always the right context.
+    const owner = await prisma.user.findFirst({
+      where: { role: Role.OWNER },
+      select: { id: true, agencyId: true, email: true },
+    });
+
+    if (!owner) {
+      res.status(503).json({ error: 'No owner account configured in Drishti' });
+      return;
+    }
+
+    logger.info({ path: req.originalUrl, method: req.method, ip: req.ip, scope }, 'service key auth succeeded');
+
+    req.user = {
+      userId: owner.id,
+      agencyId: owner.agencyId,
+      role: Role.OWNER,
+      email: owner.email,
+    };
+
+    next();
   };
-
-  next();
 }
 
 function timingSafeEqual(a: string, b: string): boolean {

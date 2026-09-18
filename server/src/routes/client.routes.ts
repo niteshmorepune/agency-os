@@ -20,7 +20,7 @@ const router = Router();
 // every other client. Every other route below requires a real Drishti session.
 const serviceKeyOrAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
   if (req.headers['x-service-key']) {
-    void serviceKeyAuth(req, res, next);
+    void serviceKeyAuth('crm')(req, res, next);
   } else {
     authenticate(req, res, next);
   }
